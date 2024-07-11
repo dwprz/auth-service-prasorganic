@@ -1,0 +1,189 @@
+services:
+  prasorganic-auth-service:
+    container_name: prasorganic-auth-service
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    ports:
+      - 3300:3300
+    env_file:
+      - ./.env
+    networks:
+      - prasorganic-auth-networks
+      - prasorganic-networks
+    depends_on:
+      - postgres-prasorganic-auth
+      - redis-auth-prasorganic-node-1
+      - redis-auth-prasorganic-node-2
+      - redis-auth-prasorganic-node-3
+      - redis-auth-prasorganic-node-4
+      - redis-auth-prasorganic-node-5
+      - redis-auth-prasorganic-node-6
+
+  postgres-prasorganic-auth:
+    container_name: postgres-prasorganic-auth
+    image: postgres:16.0
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER_DEVELOPMENT}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_DEVELOPMENT}
+    volumes:
+      - type: bind
+        source: ./docs/database/postgresql/postgresql.conf
+        target: /etc/postgresql/postgresql.conf
+      - type: volume
+        source: postgres-prasorganic-auth
+        target: /var/lib/postgresql/data
+    networks:
+      - prasorganic-auth-networks
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    restart: on-failure
+
+  redis-auth-prasorganic-node-1:
+    container_name: redis-auth-prasorganic-node-1
+    image: redis:7.4-rc1-alpine3.20
+    ports:
+      - 6371:6379
+      - 16371:16379
+    volumes:
+      - type: bind
+        source: ./docs/database/redis/redis-node-1.conf
+        target: /usr/local/etc/redis/redis.conf
+      - type: volume
+        source: redis-auth-prasorganic-node-1
+        target: /data
+    networks:
+      prasorganic-auth-networks:
+        ipv4_address: 172.38.0.11
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    restart: on-failure
+
+  redis-auth-prasorganic-node-2:
+    container_name: redis-auth-prasorganic-node-2
+    image: redis:7.4-rc1-alpine3.20
+    ports:
+      - 6372:6379
+      - 16372:16379
+    volumes:
+      - type: bind
+        source: ./docs/database/redis/redis-node-2.conf
+        target: /usr/local/etc/redis/redis.conf
+      - type: volume
+        source: redis-auth-prasorganic-node-2
+        target: /data
+    networks:
+      prasorganic-auth-networks:
+        ipv4_address: 172.38.0.12
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    restart: on-failure
+
+  redis-auth-prasorganic-node-3:
+    container_name: redis-auth-prasorganic-node-3
+    image: redis:7.4-rc1-alpine3.20
+    ports:
+      - 6373:6379
+      - 16373:16379
+    volumes:
+      - type: bind
+        source: ./docs/database/redis/redis-node-3.conf
+        target: /usr/local/etc/redis/redis.conf
+      - type: volume
+        source: redis-auth-prasorganic-node-3
+        target: /data
+    networks:
+      prasorganic-auth-networks:
+        ipv4_address: 172.38.0.13
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    restart: on-failure
+
+  redis-auth-prasorganic-node-4:
+    container_name: redis-auth-prasorganic-node-4
+    image: redis:7.4-rc1-alpine3.20
+    ports:
+      - 6374:6379
+      - 16374:16379
+    volumes:
+      - type: bind
+        source: ./docs/database/redis/redis-node-4.conf
+        target: /usr/local/etc/redis/redis.conf
+      - type: volume
+        source: redis-auth-prasorganic-node-4
+        target: /data
+    networks:
+      prasorganic-auth-networks:
+        ipv4_address: 172.38.0.14
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    restart: on-failure
+
+  redis-auth-prasorganic-node-5:
+    container_name: redis-auth-prasorganic-node-5
+    image: redis:7.4-rc1-alpine3.20
+    ports:
+      - 6375:6379
+      - 16375:16379
+    volumes:
+      - type: bind
+        source: ./docs/database/redis/redis-node-5.conf
+        target: /usr/local/etc/redis/redis.conf
+      - type: volume
+        source: redis-auth-prasorganic-node-5
+        target: /data
+    networks:
+      prasorganic-auth-networks:
+        ipv4_address: 172.38.0.15
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    restart: on-failure
+
+  redis-auth-prasorganic-node-6:
+    container_name: redis-auth-prasorganic-node-6
+    image: redis:7.4-rc1-alpine3.20
+    ports:
+      - 6376:6379
+      - 16376:16379
+    volumes:
+      - type: bind
+        source: ./docs/database/redis/redis-node-6.conf
+        target: /usr/local/etc/redis/redis.conf
+      - type: volume
+        source: redis-auth-prasorganic-node-6
+        target: /data
+    networks:
+      prasorganic-auth-networks:
+        ipv4_address: 172.38.0.16
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    restart: on-failure
+
+  redisinsight-auth-prasorganic:
+    container_name: redisinsight-auth-prasorganic
+    image: redislabs/redisinsight:2.50
+    ports:
+      - 5540:5540
+    networks:
+      - prasorganic-auth-networks
+
+volumes:
+  postgres-prasorganic-auth:
+    name: postgres-prasorganic-auth
+  redis-auth-prasorganic-node-1:
+    name: redis-auth-prasorganic-node-1
+  redis-auth-prasorganic-node-2:
+    name: redis-auth-prasorganic-node-2
+  redis-auth-prasorganic-node-3:
+    name: redis-auth-prasorganic-node-3
+  redis-auth-prasorganic-node-4:
+    name: redis-auth-prasorganic-node-4
+  redis-auth-prasorganic-node-5:
+    name: redis-auth-prasorganic-node-5
+  redis-auth-prasorganic-node-6:
+    name: redis-auth-prasorganic-node-6
+
+networks:
+  prasorganic-networks:
+    external: true
+  prasorganic-auth-networks:
+    name: prasorganic-auth-networks
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.38.0.0/16
