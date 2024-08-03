@@ -64,9 +64,7 @@ func (r *RegisterTestSuite) Test_Success() {
 		Password: "rahasia",
 	}
 
-	r.userGrpcClient.Mock.On("FindByEmail", mock.Anything, &user.Email{
-		Email: req.Email,
-	}).Return(&user.FindUserResponse{Data: nil}, nil)
+	r.userGrpcClient.Mock.On("FindByEmail", mock.Anything, req.Email).Return(&user.FindUserResponse{Data: nil}, nil)
 
 	r.helper.Mock.On("GenerateOtp").Return("123456", nil)
 
@@ -88,9 +86,7 @@ func (r *RegisterTestSuite) Test_AlreadyExists() {
 		Password: "rahasia",
 	}
 
-	r.userGrpcClient.Mock.On("FindByEmail", mock.Anything, &user.Email{
-		Email: req.Email,
-	}).Return(&user.FindUserResponse{Data: new(user.User)}, nil)
+	r.userGrpcClient.Mock.On("FindByEmail", mock.Anything, req.Email).Return(&user.FindUserResponse{Data: new(user.User)}, nil)
 
 	email, err := r.authService.Register(context.Background(), req)
 	errorRes, ok := err.(*errors.Response)

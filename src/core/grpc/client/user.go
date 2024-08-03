@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/dwprz/prasorganic-auth-service/src/interface/client"
 	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/interceptor"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
+	"github.com/dwprz/prasorganic-auth-service/src/interface/client"
 	pb "github.com/dwprz/prasorganic-proto/protogen/user"
 	"github.com/sony/gobreaker/v2"
 	"google.golang.org/grpc"
@@ -40,9 +40,9 @@ func NewUserGrpc(cb *gobreaker.CircuitBreaker[any], conf *config.Config, unaryRe
 	}, conn
 }
 
-func (u *UserGrpcImpl) FindByEmail(ctx context.Context, data *pb.Email) (*pb.FindUserResponse, error) {
+func (u *UserGrpcImpl) FindByEmail(ctx context.Context, email string) (*pb.FindUserResponse, error) {
 	res, err := u.cbreaker.Execute(func() (any, error) {
-		res, err := u.client.FindByEmail(ctx, data)
+		res, err := u.client.FindByEmail(ctx, &pb.Email{Email: email})
 		return res, err
 	})
 
@@ -83,4 +83,16 @@ func (u *UserGrpcImpl) Upsert(ctx context.Context, data *pb.LoginWithGoogleReque
 	}
 
 	return user, err
+}
+
+func (u *UserGrpcImpl) UpdateRefreshToken(ctx context.Context, data *pb.RefreshToken) error {
+	_, err := u.cbreaker.Execute(func() (any, error) {
+		_, err := u.client.UpdateRefreshToken(ctx, &pb.RefreshToken{
+			Email: data.Email,
+			Token: data.Token,
+		})
+		return nil, err
+	})
+
+	return err
 }

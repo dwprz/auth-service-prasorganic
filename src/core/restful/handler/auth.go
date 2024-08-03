@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
 	"github.com/dwprz/prasorganic-auth-service/src/interface/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/interface/service"
-	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
 	"github.com/gofiber/fiber/v2"
 	gonanoid "github.com/matoous/go-nanoid/v2"
@@ -154,4 +154,34 @@ func (a *AuthRestful) LoginWithGoogleCallback(c *fiber.Ctx) error {
 	})
 
 	return c.Status(200).JSON(fiber.Map{"data": result})
+}
+
+func (a *AuthRestful) Login(c *fiber.Ctx) error {
+	req := new(dto.LoginReq)
+	if err := c.BodyParser(req); err != nil {
+		return err
+	}
+
+	res, err := a.authService.Login(context.Background(), req)
+	if err != nil {
+		return err
+	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    res.Tokens.AccessToken,
+		Path:     "/",
+		HTTPOnly: true,
+		Expires:  time.Now().Add(5 * time.Minute),
+	})
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    res.Tokens.RefreshToken,
+		Path:     "/api/auth/token/refresh",
+		HTTPOnly: true,
+		Expires:  time.Now().Add(5 * time.Minute),
+	})
+
+	return c.Status(200).JSON(fiber.Map{"data": res.Data})
 }

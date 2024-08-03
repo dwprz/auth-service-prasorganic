@@ -16,8 +16,8 @@ func NewUserMock() *UserGrpcMock {
 	}
 }
 
-func (u *UserGrpcMock) FindByEmail(ctx context.Context, data *pb.Email) (*pb.FindUserResponse, error) {
-	arguments := u.Mock.Called(ctx, data)
+func (u *UserGrpcMock) FindByEmail(ctx context.Context, email string) (*pb.FindUserResponse, error) {
+	arguments := u.Mock.Called(ctx, email)
 
 	if arguments.Get(0) == nil {
 		return nil, arguments.Error(1)
@@ -40,4 +40,10 @@ func (u *UserGrpcMock) Upsert(ctx context.Context, data *pb.LoginWithGoogleReque
 	}
 
 	return arguments.Get(0).(*pb.User), arguments.Error(1)
+}
+
+func (u *UserGrpcMock) UpdateRefreshToken(ctx context.Context, data *pb.RefreshToken) error {
+	arguments := u.Mock.Called(ctx, data)
+
+	return arguments.Error(0)
 }

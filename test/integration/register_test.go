@@ -1,10 +1,10 @@
 package test
 
 import (
-	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
-	"github.com/dwprz/prasorganic-auth-service/src/mock/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/restful"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
 	"github.com/dwprz/prasorganic-auth-service/test/util"
 	"github.com/dwprz/prasorganic-proto/protogen/user"
@@ -109,9 +109,10 @@ func (r *RegisterTestSuite) MockHelper_GenerateOtp(otp string) {
 }
 
 func (r *RegisterTestSuite) MockUserGrpcClient_FindByEmail(email string, data *user.User) {
-	r.userGrpcClient.Mock.On("FindByEmail", mock.Anything, &user.Email{
-		Email: email,
-	}).Return(&user.FindUserResponse{Data: data}, nil)
+	r.userGrpcClient.Mock.On("FindByEmail", mock.Anything, email).Return(
+		&user.FindUserResponse{
+			Data: data,
+		}, nil)
 }
 
 func (r *RegisterTestSuite) CreateRegisterRequest(body *dto.RegisterReq) *http.Request {

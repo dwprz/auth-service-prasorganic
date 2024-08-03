@@ -1,8 +1,11 @@
 package dto
 
-import "time"
+import (
+	"github.com/dwprz/prasorganic-auth-service/src/model/entity"
+	"time"
+)
 
-type LoginRes struct {
+type LoginWithGoogleRes struct {
 	UserId       string    `json:"user_id"`
 	Email        string    `json:"email"`
 	FullName     string    `json:"full_name"`
@@ -11,4 +14,9 @@ type LoginRes struct {
 	Whatsapp     string    `json:"whatsapp"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+type LoginRes struct {
+	Data   *entity.SanitizedUser `json:"data"`
+	Tokens *entity.Tokens        `json:"tokens"`
 }

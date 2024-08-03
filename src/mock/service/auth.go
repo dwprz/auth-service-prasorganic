@@ -28,7 +28,17 @@ func (a *AuthMock) VerifyRegister(ctx context.Context, data *dto.VerifyRegisterR
 	return arguments.Error(0)
 }
 
-func (a *AuthMock) LoginWithGoogle(ctx context.Context, data *dto.LoginWithGoogleReq) (*dto.LoginRes, error) {
+func (a *AuthMock) LoginWithGoogle(ctx context.Context, data *dto.LoginWithGoogleReq) (*dto.LoginWithGoogleRes, error) {
+	arguments := a.Mock.Called(ctx, data)
+
+	if arguments.Get(0) == nil {
+		return nil, arguments.Error(1)
+	}
+
+	return arguments.Get(0).(*dto.LoginWithGoogleRes), arguments.Error(1)
+}
+
+func (a *AuthMock) Login(ctx context.Context, data *dto.LoginReq) (*dto.LoginRes, error) {
 	arguments := a.Mock.Called(ctx, data)
 
 	if arguments.Get(0) == nil {

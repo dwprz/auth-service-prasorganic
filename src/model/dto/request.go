@@ -21,4 +21,7 @@ type LoginWithGoogleReq struct {
 	RefreshToken string `json:"refresh_token" validate:"required,min=50,max=1000"`
 }
 
-
+type LoginReq struct {
+	Email    string `json:"email" validate:"required,email,min=5,max=100"`
+	Password string `json:"password" validate:"required,min=5,max=100"`
+}
