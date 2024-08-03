@@ -1,8 +1,8 @@
 package util
 
 import (
-	"github.com/dwprz/prasorganic-auth-service/mock/client"
-	"github.com/dwprz/prasorganic-auth-service/mock/helper"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/cache"
 	"github.com/dwprz/prasorganic-auth-service/src/common/logger"
 	grpcapp "github.com/dwprz/prasorganic-auth-service/src/core/grpc/grpc"
@@ -11,6 +11,7 @@ import (
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/restful"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/database"
+	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/oauth"
 	"github.com/dwprz/prasorganic-auth-service/src/service"
 	"github.com/go-playground/validator/v10"
 	"github.com/redis/go-redis/v9"
@@ -32,8 +33,10 @@ func NewRestfulServer(cum *client.UserGrpcMock) (*restful.Server, *redis.Cluster
 	rabbitMQClient := client.NewRabbitMQMock()
 
 	authService := service.NewAuth(grpcClient, rabbitMQClient, validate, authCache, logger, conf, helper)
-	authResfulHandler := handler.NewAuthRestful(authService, logger, helper)
-	middleware := middleware.New(conf, logger)
+	googleOauthConf := oauth.NewGoogleConfig(conf, helper)
+
+	authResfulHandler := handler.NewAuthRestful(authService, googleOauthConf, logger, helper)
+	middleware := middleware.New(conf, googleOauthConf, logger)
 
 	restfulServer := restful.NewServer(authResfulHandler, middleware, conf)
 

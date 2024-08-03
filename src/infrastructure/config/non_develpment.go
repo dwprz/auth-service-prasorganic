@@ -2,12 +2,11 @@ package config
 
 import (
 	"context"
+	vault "github.com/hashicorp/vault/api"
+	"github.com/sirupsen/logrus"
 	"log"
 	"os"
 	"strings"
-
-	vault "github.com/hashicorp/vault/api"
-	"github.com/sirupsen/logrus"
 )
 
 func setUpForNonDevelopment(appStatus string, logger *logrus.Logger) *Config {
@@ -38,6 +37,16 @@ func setUpForNonDevelopment(appStatus string, logger *logrus.Logger) *Config {
 		logger.WithFields(logrus.Fields{"location": "config.setUpForNonDevelopment", "section": "KVv2.Get"}).Fatal(err)
 	}
 
+	oauthSecrets, err := client.KVv2(mountPath).Get(context.Background(), "oauth")
+	if err != nil {
+		logger.WithFields(logrus.Fields{"location": "config.setUpForNonDevelopment", "section": "KVv2.Get"}).Fatal(err)
+	}
+
+	jwtSecrets, err := client.KVv2(mountPath).Get(context.Background(), "jwt")
+	if err != nil {
+		logger.WithFields(logrus.Fields{"location": "config.setUpForNonDevelopment", "section": "KVv2.Get"}).Fatal(err)
+	}
+
 	currentAppConf := new(currentApp)
 	currentAppConf.RestfulAddress = authServiceSecrets.Data["RESTFUL_ADDRESS"].(string)
 	currentAppConf.GrpcPort = authServiceSecrets.Data["GRPC_PORT"].(string)
@@ -60,10 +69,21 @@ func setUpForNonDevelopment(appStatus string, logger *logrus.Logger) *Config {
 	rabbitMQEmailServiceConf := new(rabbitMQEmailService)
 	rabbitMQEmailServiceConf.DSN = rabbitMQEmailServiceSecrets.Data["DSN"].(string)
 
+	googleOauthConf := new(googleOauth)
+	googleOauthConf.ClientId = oauthSecrets.Data["GOOGLE_CLIENT_ID"].(string)
+	googleOauthConf.ClientSecret = oauthSecrets.Data["GOOGLE_CLIENT_SECRET"].(string)
+	googleOauthConf.RedirectURL = oauthSecrets.Data["GOOGLE_REDIRECT_URL"].(string)
+
+	jwtConf := new(jwt)
+	jwtConf.PrivateKey = loadRSAPrivateKey(jwtSecrets.Data["PRIVATE_KEY"].(string), logger)
+	jwtConf.PublicKey = loadRSAPublicKey(jwtSecrets.Data["PUBLIC_KEY"].(string), logger)
+
 	return &Config{
 		CurrentApp:           currentAppConf,
 		Redis:                redisConf,
 		ApiGateway:           apiGatewayConf,
 		RabbitMQEmailService: rabbitMQEmailServiceConf,
+		GoogleOauth:          googleOauthConf,
+		JWT:                  jwtConf,
 	}
 }

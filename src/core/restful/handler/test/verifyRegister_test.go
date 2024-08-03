@@ -7,14 +7,16 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
-	"github.com/dwprz/prasorganic-auth-service/mock/helper"
-	"github.com/dwprz/prasorganic-auth-service/mock/service"
+
+	"github.com/dwprz/prasorganic-auth-service/src/mock/helper"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/service"
 	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
 	"github.com/dwprz/prasorganic-auth-service/src/common/logger"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/handler"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/middleware"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/restful"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
+	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/oauth"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
 	"github.com/dwprz/prasorganic-auth-service/test/util"
 	"github.com/sirupsen/logrus"
@@ -22,7 +24,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// go test -v ./src/core/restful/handler/test/... -count=1 -p=1 
+// go test -v ./src/core/restful/handler/test/... -count=1 -p=1
 // go test -run ^TestHandler_VerifyRegister$  -v ./src/core/restful/handler/test/ -count=1
 
 type VerifyRegisterTestSuite struct {
@@ -40,9 +42,11 @@ func (v *VerifyRegisterTestSuite) SetupSuite() {
 
 	// mock
 	v.authService = service.NewAuthMock()
-	authHandler := handler.NewAuthRestful(v.authService, v.logger, v.helper)
 
-	middleware := middleware.New(conf, v.logger)
+	googleOauthConf := oauth.NewGoogleConfig(conf, v.helper)
+	authHandler := handler.NewAuthRestful(v.authService, googleOauthConf, v.logger, v.helper)
+
+	middleware := middleware.New(conf, googleOauthConf, v.logger)
 	v.restfulServer = restful.NewServer(authHandler, middleware, conf)
 }
 

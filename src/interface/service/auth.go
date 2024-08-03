@@ -5,7 +5,8 @@ import (
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
 )
 
-type Authentication interface {
+type Auth interface {
 	Register(ctx context.Context, data *dto.RegisterReq) (string, error)
 	VerifyRegister(ctx context.Context, data *dto.VerifyRegisterReq) error
+	LoginWithGoogle(ctx context.Context, data *dto.LoginWithGoogleReq) (*dto.LoginRes, error)
 }

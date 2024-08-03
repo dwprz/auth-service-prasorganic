@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/dwprz/prasorganic-auth-service/interface/client"
+	"github.com/dwprz/prasorganic-auth-service/src/interface/client"
 	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/interceptor"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
-	"github.com/dwprz/prasorganic-proto/protogen/user"
+	pb "github.com/dwprz/prasorganic-proto/protogen/user"
 	"github.com/sony/gobreaker/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 type UserGrpcImpl struct {
-	client   user.UserServiceClient
+	client   pb.UserServiceClient
 	cbreaker *gobreaker.CircuitBreaker[any]
 }
 
@@ -32,7 +32,7 @@ func NewUserGrpc(cb *gobreaker.CircuitBreaker[any], conf *config.Config, unaryRe
 		log.Fatalf("new user grpc client: %v", err.Error())
 	}
 
-	client := user.NewUserServiceClient(conn)
+	client := pb.NewUserServiceClient(conn)
 
 	return &UserGrpcImpl{
 		client:   client,
@@ -40,29 +40,47 @@ func NewUserGrpc(cb *gobreaker.CircuitBreaker[any], conf *config.Config, unaryRe
 	}, conn
 }
 
-func (u *UserGrpcImpl) FindByEmail(ctx context.Context, data *user.Email) (*user.FindUserResponse, error) {
-	result, err := u.cbreaker.Execute(func() (any, error) {
-		user, err := u.client.FindByEmail(ctx, data)
-		return user, err
+func (u *UserGrpcImpl) FindByEmail(ctx context.Context, data *pb.Email) (*pb.FindUserResponse, error) {
+	res, err := u.cbreaker.Execute(func() (any, error) {
+		res, err := u.client.FindByEmail(ctx, data)
+		return res, err
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	user, ok := result.(*user.FindUserResponse)
+	user, ok := res.(*pb.FindUserResponse)
 	if !ok {
-		return nil, fmt.Errorf("client.UserGrpcImpl/FindByEmail | unexpected type: %T", result)
+		return nil, fmt.Errorf("client.UserGrpcImpl/FindByEmail | unexpected type: %T", res)
 	}
 
 	return user, err
 }
 
-func (u *UserGrpcImpl) Create(ctx context.Context, data *user.RegisterRequest) error {
+func (u *UserGrpcImpl) Create(ctx context.Context, data *pb.RegisterRequest) error {
 	_, err := u.cbreaker.Execute(func() (any, error) {
 		_, err := u.client.Create(ctx, data)
 		return nil, err
 	})
 
 	return err
+}
+
+func (u *UserGrpcImpl) Upsert(ctx context.Context, data *pb.LoginWithGoogleRequest) (*pb.User, error) {
+	res, err := u.cbreaker.Execute(func() (any, error) {
+		res, err := u.client.Upsert(ctx, data)
+		return res, err
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	user, ok := res.(*pb.User)
+	if !ok {
+		return nil, fmt.Errorf("client.UserGrpcImpl/FindByEmail | unexpected type: %T", res)
+	}
+
+	return user, err
 }

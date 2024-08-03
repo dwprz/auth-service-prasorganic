@@ -2,10 +2,12 @@ package test
 
 import (
 	"context"
-	serviceinterface "github.com/dwprz/prasorganic-auth-service/interface/service"
-	"github.com/dwprz/prasorganic-auth-service/mock/cache"
-	"github.com/dwprz/prasorganic-auth-service/mock/client"
-	"github.com/dwprz/prasorganic-auth-service/mock/helper"
+	"testing"
+
+	serviceinterface "github.com/dwprz/prasorganic-auth-service/src/interface/service"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/cache"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
 	"github.com/dwprz/prasorganic-auth-service/src/common/logger"
 	grpcapp "github.com/dwprz/prasorganic-auth-service/src/core/grpc/grpc"
@@ -19,7 +21,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
-	"testing"
 )
 
 // go test -v ./src/service/test/... -count=1 -p=1
@@ -27,7 +28,7 @@ import (
 
 type RegisterTestSuite struct {
 	suite.Suite
-	authService    serviceinterface.Authentication
+	authService    serviceinterface.Auth
 	userGrpcClient *client.UserGrpcMock
 	authCache      *cache.AuthMock
 	logger         *logrus.Logger
@@ -41,7 +42,6 @@ func (r *RegisterTestSuite) SetupSuite() {
 
 	// mock
 	r.helper = helper.NewMock()
-
 	// mock
 	r.userGrpcClient = client.NewUserMock()
 	userGrpcConn := new(grpc.ClientConn)
@@ -50,7 +50,6 @@ func (r *RegisterTestSuite) SetupSuite() {
 
 	// mock
 	r.authCache = cache.NewAuthMock()
-
 	// mock
 	rabbitMQClient := client.NewRabbitMQMock()
 
@@ -59,41 +58,41 @@ func (r *RegisterTestSuite) SetupSuite() {
 
 func (r *RegisterTestSuite) Test_Success() {
 
-	data := &dto.RegisterReq{
+	req := &dto.RegisterReq{
 		Email:    "johndoe123@gmail.com",
 		FullName: "John Doe",
 		Password: "rahasia",
 	}
 
 	r.userGrpcClient.Mock.On("FindByEmail", mock.Anything, &user.Email{
-		Email: data.Email,
+		Email: req.Email,
 	}).Return(&user.FindUserResponse{Data: nil}, nil)
 
-	r.helper.Mock.On("GenerateOtp").Return("123456")
+	r.helper.Mock.On("GenerateOtp").Return("123456", nil)
 
 	r.authCache.Mock.On("CacheRegisterReq", mock.Anything, mock.MatchedBy(func(req *dto.RegisterReq) bool {
-		return req.Email == data.Email && req.FullName == data.FullName && req.Password == data.Password && req.Otp == "123456"
+		return req.Email == req.Email && req.FullName == req.FullName && req.Password == req.Password && req.Otp == "123456"
 	})).Return(nil)
 
-	email, err := r.authService.Register(context.Background(), data)
+	email, err := r.authService.Register(context.Background(), req)
 
 	assert.NoError(r.T(), err)
-	assert.Equal(r.T(), data.Email, email)
+	assert.Equal(r.T(), req.Email, email)
 }
 
 func (r *RegisterTestSuite) Test_AlreadyExists() {
 
-	data := &dto.RegisterReq{
+	req := &dto.RegisterReq{
 		Email:    "userexisted@gmail.com",
 		FullName: "John Doe",
 		Password: "rahasia",
 	}
 
 	r.userGrpcClient.Mock.On("FindByEmail", mock.Anything, &user.Email{
-		Email: data.Email,
+		Email: req.Email,
 	}).Return(&user.FindUserResponse{Data: new(user.User)}, nil)
 
-	email, err := r.authService.Register(context.Background(), data)
+	email, err := r.authService.Register(context.Background(), req)
 	errorRes, ok := err.(*errors.Response)
 
 	assert.Equal(r.T(), true, ok)

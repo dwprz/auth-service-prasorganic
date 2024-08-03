@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-	"github.com/dwprz/prasorganic-auth-service/interface/cache"
+	"github.com/dwprz/prasorganic-auth-service/src/interface/cache"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
@@ -16,7 +16,7 @@ type AuthImpl struct {
 	logger *logrus.Logger
 }
 
-func NewAuth(r *redis.ClusterClient, l *logrus.Logger) cache.Authentication {
+func NewAuth(r *redis.ClusterClient, l *logrus.Logger) cache.Auth {
 	return &AuthImpl{
 		redis:  r,
 		logger: l,

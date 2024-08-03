@@ -2,9 +2,9 @@ package test
 
 import (
 	"context"
-	serviceinterface "github.com/dwprz/prasorganic-auth-service/interface/service"
-	"github.com/dwprz/prasorganic-auth-service/mock/cache"
-	"github.com/dwprz/prasorganic-auth-service/mock/client"
+	serviceinterface "github.com/dwprz/prasorganic-auth-service/src/interface/service"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/cache"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
 	"github.com/dwprz/prasorganic-auth-service/src/common/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/common/logger"
 	grpcapp "github.com/dwprz/prasorganic-auth-service/src/core/grpc/grpc"
@@ -27,7 +27,7 @@ import (
 
 type VerifyRegisterTestSuite struct {
 	suite.Suite
-	authService    serviceinterface.Authentication
+	authService    serviceinterface.Auth
 	userGrpcClient *client.UserGrpcMock
 	authCache      *cache.AuthMock
 	logger         *logrus.Logger
@@ -37,7 +37,7 @@ func (v *VerifyRegisterTestSuite) SetupSuite() {
 	v.logger = logger.New()
 	validator := validator.New()
 	conf := config.New("DEVELOPMENT", v.logger)
-	helper := helper.New()
+	helper := helper.New(conf, v.logger)
 
 	// mock
 	v.userGrpcClient = client.NewUserMock()

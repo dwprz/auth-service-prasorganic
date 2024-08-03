@@ -1,7 +1,7 @@
 package grpc
 
 import (
-	"github.com/dwprz/prasorganic-auth-service/interface/client"
+	"github.com/dwprz/prasorganic-auth-service/src/interface/client"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )

@@ -3,31 +3,37 @@ package handler
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"time"
-	"github.com/dwprz/prasorganic-auth-service/interface/helper"
-	"github.com/dwprz/prasorganic-auth-service/interface/service"
+
+	"github.com/dwprz/prasorganic-auth-service/src/interface/helper"
+	"github.com/dwprz/prasorganic-auth-service/src/interface/service"
 	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
 	"github.com/gofiber/fiber/v2"
+	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 )
 
 type AuthRestful struct {
-	authService service.Authentication
-	logger      *logrus.Logger
-	helper      helper.Helper
+	authService     service.Auth
+	googleOauthConf *oauth2.Config
+	logger          *logrus.Logger
+	helper          helper.Helper
 }
 
-func NewAuthRestful(as service.Authentication, l *logrus.Logger, h helper.Helper) *AuthRestful {
+func NewAuthRestful(as service.Auth, goc *oauth2.Config, l *logrus.Logger, h helper.Helper) *AuthRestful {
 	return &AuthRestful{
-		authService: as,
-		logger:      l,
-		helper:      h,
+		authService:     as,
+		googleOauthConf: goc,
+		logger:          l,
+		helper:          h,
 	}
 }
 
 func (a *AuthRestful) Register(c *fiber.Ctx) error {
-	defer a.helper.HandlePanic("auth handler panic (register)", c, a.logger)
+	defer a.helper.HandlePanic("auth handler panic (register)", c)
 
 	request := new(dto.RegisterReq)
 
@@ -44,7 +50,7 @@ func (a *AuthRestful) Register(c *fiber.Ctx) error {
 		Name:     "pending_register",
 		Value:    base64.StdEncoding.EncodeToString([]byte(email)),
 		HTTPOnly: true,
-		Path:     "/",
+		Path:     "/api/auth/register/verify",
 		Expires:  time.Now().Add(30 * time.Minute),
 	})
 
@@ -52,7 +58,7 @@ func (a *AuthRestful) Register(c *fiber.Ctx) error {
 }
 
 func (a *AuthRestful) VerifyRegister(c *fiber.Ctx) error {
-	defer a.helper.HandlePanic("auth handler panic (verify register)", c, a.logger)
+	defer a.helper.HandlePanic("auth handler panic (verify register)", c)
 
 	request := new(dto.VerifyRegisterReq)
 
@@ -75,4 +81,77 @@ func (a *AuthRestful) VerifyRegister(c *fiber.Ctx) error {
 	c.ClearCookie("pending_register")
 
 	return c.Status(200).JSON(fiber.Map{"data": "verify register successfully"})
+}
+
+func (a *AuthRestful) LoginWithGoogle(c *fiber.Ctx) error {
+	oauthState, err := a.helper.GenerateOauthState()
+	if err != nil {
+		return err
+	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "oauth_state",
+		Value:    oauthState,
+		Path:     "/api/auth/login/google/callback",
+		HTTPOnly: true,
+		Expires:  time.Now().Add(5 * time.Minute),
+	})
+
+	url := a.googleOauthConf.AuthCodeURL(oauthState)
+
+	return c.Status(fiber.StatusSeeOther).Redirect(url)
+}
+
+func (a *AuthRestful) LoginWithGoogleCallback(c *fiber.Ctx) error {
+	req := c.Body()
+
+	user := new(dto.LoginWithGoogleReq)
+	err := json.Unmarshal(req, user)
+	if err != nil {
+		return err
+	}
+
+	userId, err := gonanoid.New()
+	if err != nil {
+		return err
+	}
+
+	user.UserId = userId
+
+	accessToken, err := a.helper.GenerateAccessToken(user.UserId, user.Email, "USER")
+	if err != nil {
+		return err
+	}
+
+	refreshToken, err := a.helper.GenerateRefreshToken()
+	if err != nil {
+		return err
+	}
+
+	user.RefreshToken = refreshToken
+
+	result, err := a.authService.LoginWithGoogle(context.Background(), user)
+	if err != nil {
+		return err
+	}
+
+	c.ClearCookie("oauth_state")
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		Path:     "/",
+		HTTPOnly: true,
+		Expires:  time.Now().Add(5 * time.Minute),
+	})
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Path:     "/api/auth/token/refresh",
+		HTTPOnly: true,
+		Expires:  time.Now().Add(5 * time.Minute),
+	})
+
+	return c.Status(200).JSON(fiber.Map{"data": result})
 }

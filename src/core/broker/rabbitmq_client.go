@@ -3,7 +3,7 @@ package broker
 import (
 	"context"
 	"encoding/json"
-	"github.com/dwprz/prasorganic-auth-service/interface/client"
+	"github.com/dwprz/prasorganic-auth-service/src/interface/client"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/sirupsen/logrus"

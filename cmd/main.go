@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
 	"github.com/dwprz/prasorganic-auth-service/src/cache"
 	"github.com/dwprz/prasorganic-auth-service/src/common/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/common/logger"
@@ -17,6 +18,7 @@ import (
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/cbreaker"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/database"
+	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/oauth"
 	"github.com/dwprz/prasorganic-auth-service/src/service"
 	"github.com/go-playground/validator/v10"
 )
@@ -42,7 +44,7 @@ func main() {
 	redis := database.NewRedisCluster(conf)
 	authCache := cache.NewAuth(redis, logger)
 	validate := validator.New()
-	helper := helper.New()
+	helper := helper.New(conf, logger)
 
 	cbreaker := cbreaker.New(logger)
 
@@ -56,8 +58,10 @@ func main() {
 	defer rabbitMQClient.Close()
 
 	authService := service.NewAuth(grpcClient, rabbitMQClient, validate, authCache, logger, conf, helper)
-	authRestfulHandler := handler.NewAuthRestful(authService, logger, helper)
-	middleware := middleware.New(conf, logger)
+	googleOauthConf := oauth.NewGoogleConfig(conf, helper)
+
+	authRestfulHandler := handler.NewAuthRestful(authService, googleOauthConf, logger, helper)
+	middleware := middleware.New(conf, googleOauthConf, logger)
 
 	restfulServer := restful.NewServer(authRestfulHandler, middleware, conf)
 	defer restfulServer.Stop()

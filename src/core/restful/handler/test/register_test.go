@@ -4,7 +4,8 @@ import (
 	"context"
 	"net/http/httptest"
 	"testing"
-	"github.com/dwprz/prasorganic-auth-service/mock/service"
+
+	"github.com/dwprz/prasorganic-auth-service/src/mock/service"
 	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
 	"github.com/dwprz/prasorganic-auth-service/src/common/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/common/logger"
@@ -12,6 +13,7 @@ import (
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/middleware"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/restful"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
+	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/oauth"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
 	"github.com/dwprz/prasorganic-auth-service/test/util"
 	"github.com/sirupsen/logrus"
@@ -32,13 +34,15 @@ type RegisterTestSuite struct {
 func (r *RegisterTestSuite) SetupSuite() {
 	r.logger = logger.New()
 	conf := config.New("DEVELOPMENT", r.logger)
-	helper := helper.New()
+	helper := helper.New(conf, r.logger)
 
 	// mock
 	r.authService = service.NewAuthMock()
-	authHandler := handler.NewAuthRestful(r.authService, r.logger, helper)
 
-	middleware := middleware.New(conf, r.logger)
+	googleOauthConf := oauth.NewGoogleConfig(conf, helper)
+	authHandler := handler.NewAuthRestful(r.authService, googleOauthConf, r.logger, helper)
+
+	middleware := middleware.New(conf, googleOauthConf, r.logger)
 	r.restfulServer = restful.NewServer(authHandler, middleware, conf)
 }
 

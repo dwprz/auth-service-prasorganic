@@ -1,13 +1,8 @@
 package test
 
 import (
-	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"runtime"
-	"testing"
-	"github.com/dwprz/prasorganic-auth-service/mock/client"
-	"github.com/dwprz/prasorganic-auth-service/mock/helper"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/restful"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
@@ -18,8 +13,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 )
 
+// *nyalakan database nya terlebih dahulu
 // go test -v ./test/integration/... -count=1 -p=1
 // go test -run ^TestIntegration_Register$  -v ./test/integration -count=1
 
@@ -106,7 +105,7 @@ func (r *RegisterTestSuite) Test_InvalidInput() {
 }
 
 func (r *RegisterTestSuite) MockHelper_GenerateOtp(otp string) {
-	r.helper.Mock.On("GenerateOtp").Return(otp)
+	r.helper.Mock.On("GenerateOtp").Return(otp, nil)
 }
 
 func (r *RegisterTestSuite) MockUserGrpcClient_FindByEmail(email string, data *user.User) {
@@ -124,7 +123,5 @@ func (r *RegisterTestSuite) CreateRegisterRequest(body *dto.RegisterReq) *http.R
 }
 
 func TestIntegration_Register(t *testing.T) {
-	fmt.Printf("ini goroutine 1: %v\n", runtime.NumGoroutine()) // 2
 	suite.Run(t, new(RegisterTestSuite))
-	fmt.Printf("ini goroutine 2: %v\n", runtime.NumGoroutine()) // 5
 }

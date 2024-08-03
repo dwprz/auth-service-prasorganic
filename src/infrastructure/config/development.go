@@ -38,10 +38,21 @@ func setUpForDevelopment(logger *logrus.Logger) *Config {
 	rabbitMQConf := new(rabbitMQEmailService)
 	rabbitMQConf.DSN = viper.GetString("RABBITMQ_EMAIL_SERVICE_DSN")
 
+	googleOauthConf := new(googleOauth)
+	googleOauthConf.ClientId = viper.GetString("GOOGLE_OAUTH_CLIENT_ID")
+	googleOauthConf.ClientSecret = viper.GetString("GOOGLE_OAUTH_CLIENT_SECRET")
+	googleOauthConf.RedirectURL = viper.GetString("GOOGLE_OAUTH_REDIRECT_URL")
+
+	jwtConf := new(jwt)
+	jwtConf.PrivateKey = loadRSAPrivateKey(viper.GetString("JWT_PRIVATE_KEY"), logger)
+	jwtConf.PublicKey = loadRSAPublicKey(viper.GetString("JWT_PUBLIC_KEY"), logger)
+
 	return &Config{
 		CurrentApp:           currentAppConf,
 		Redis:                redisConf,
 		ApiGateway:           apiGatewayConf,
 		RabbitMQEmailService: rabbitMQConf,
+		GoogleOauth:          googleOauthConf,
+		JWT:                  jwtConf,
 	}
 }

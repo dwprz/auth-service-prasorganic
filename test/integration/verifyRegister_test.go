@@ -2,12 +2,8 @@ package test
 
 import (
 	"encoding/base64"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
-	"github.com/dwprz/prasorganic-auth-service/mock/client"
-	"github.com/dwprz/prasorganic-auth-service/mock/helper"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/restful"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
@@ -19,6 +15,10 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/crypto/bcrypt"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
 )
 
 // go test -v ./test/integration/... -count=1 -p=1
@@ -97,7 +97,7 @@ func (v *VerifyRegisterTestSuite) MockUserGrpcClient_Create(data *dto.RegisterRe
 }
 
 func (v *VerifyRegisterTestSuite) MockHelper_GenerateOtp(otp string) {
-	v.helper.Mock.On("GenerateOtp").Return(otp)
+	v.helper.Mock.On("GenerateOtp").Return(otp, nil)
 }
 
 func (v *VerifyRegisterTestSuite) CreateRegisterRequest(body *dto.RegisterReq) *http.Request {
