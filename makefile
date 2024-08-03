@@ -40,3 +40,8 @@ clean-redis-conf:
 
 .PHONY: all-redis-conf
 all-redis-conf: clean-redis-conf redis-conf
+
+.PHONY: licenses
+licenses:
+	rm -rf ./LICENSES
+	go-licenses save ./... --save_path=./LICENSES
