@@ -142,7 +142,7 @@ func (a *AuthRestful) LoginWithGoogleCallback(c *fiber.Ctx) error {
 		Value:    accessToken,
 		Path:     "/",
 		HTTPOnly: true,
-		Expires:  time.Now().Add(5 * time.Minute),
+		Expires:  time.Now().Add(1 * time.Hour),
 	})
 
 	c.Cookie(&fiber.Cookie{
@@ -150,7 +150,7 @@ func (a *AuthRestful) LoginWithGoogleCallback(c *fiber.Ctx) error {
 		Value:    refreshToken,
 		Path:     "/api/auth/token/refresh",
 		HTTPOnly: true,
-		Expires:  time.Now().Add(5 * time.Minute),
+		Expires:  time.Now().Add(30 * 24 * time.Hour),
 	})
 
 	return c.Status(200).JSON(fiber.Map{"data": result})
@@ -172,7 +172,7 @@ func (a *AuthRestful) Login(c *fiber.Ctx) error {
 		Value:    res.Tokens.AccessToken,
 		Path:     "/",
 		HTTPOnly: true,
-		Expires:  time.Now().Add(5 * time.Minute),
+		Expires:  time.Now().Add(1 * time.Hour),
 	})
 
 	c.Cookie(&fiber.Cookie{
@@ -180,8 +180,31 @@ func (a *AuthRestful) Login(c *fiber.Ctx) error {
 		Value:    res.Tokens.RefreshToken,
 		Path:     "/api/auth/token/refresh",
 		HTTPOnly: true,
-		Expires:  time.Now().Add(5 * time.Minute),
+		Expires:  time.Now().Add(30 * 24 * time.Hour),
 	})
 
 	return c.Status(200).JSON(fiber.Map{"data": res.Data})
+}
+
+func (a *AuthRestful) RefreshToken(c *fiber.Ctx) error {
+	refreshToken := c.Cookies("refresh_token")
+
+	if _, err := a.helper.VerifyJwt(refreshToken); err != nil {
+		return &errors.Response{Code: 401, Message: "refresh token is invalid"}
+	}
+
+	res, err := a.authService.RefreshToken(context.Background(), refreshToken)
+	if err != nil {
+		return err
+	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    res.AccessToken,
+		Path:     "/",
+		HTTPOnly: true,
+		Expires:  time.Now().Add(1 * time.Hour),
+	})
+
+	return c.Status(201).JSON(fiber.Map{"data": "refresh token successfully"})
 }

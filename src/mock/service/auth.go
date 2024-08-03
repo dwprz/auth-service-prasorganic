@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
+	"github.com/dwprz/prasorganic-auth-service/src/model/entity"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -46,4 +48,14 @@ func (a *AuthMock) Login(ctx context.Context, data *dto.LoginReq) (*dto.LoginRes
 	}
 
 	return arguments.Get(0).(*dto.LoginRes), arguments.Error(1)
+}
+
+func (a *AuthMock) RefreshToken(ctx context.Context, refreshToken string) (*entity.Tokens, error) {
+	arguments := a.Mock.Called(ctx, refreshToken)
+
+	if arguments.Get(0) == nil {
+		return nil, arguments.Error(1)
+	}
+
+	return arguments.Get(0).(*entity.Tokens), arguments.Error(1)
 }

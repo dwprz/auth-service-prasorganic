@@ -40,6 +40,15 @@ func NewUserGrpc(cb *gobreaker.CircuitBreaker[any], conf *config.Config, unaryRe
 	}, conn
 }
 
+func (u *UserGrpcImpl) Create(ctx context.Context, data *pb.RegisterRequest) error {
+	_, err := u.cbreaker.Execute(func() (any, error) {
+		_, err := u.client.Create(ctx, data)
+		return nil, err
+	})
+
+	return err
+}
+
 func (u *UserGrpcImpl) FindByEmail(ctx context.Context, email string) (*pb.FindUserResponse, error) {
 	res, err := u.cbreaker.Execute(func() (any, error) {
 		res, err := u.client.FindByEmail(ctx, &pb.Email{Email: email})
@@ -58,13 +67,20 @@ func (u *UserGrpcImpl) FindByEmail(ctx context.Context, email string) (*pb.FindU
 	return user, err
 }
 
-func (u *UserGrpcImpl) Create(ctx context.Context, data *pb.RegisterRequest) error {
-	_, err := u.cbreaker.Execute(func() (any, error) {
-		_, err := u.client.Create(ctx, data)
-		return nil, err
+func (u *UserGrpcImpl) FindByRefreshToken(ctx context.Context, data *pb.RefreshToken) (*pb.FindUserResponse, error) {
+	res, err := u.cbreaker.Execute(func() (any, error) {
+		res, err := u.client.FindByRefreshToken(ctx, &pb.RefreshToken{
+			Token: data.Token,
+		})
+		return res, err
 	})
 
-	return err
+	user, ok := res.(*pb.FindUserResponse)
+	if !ok {
+		return nil, fmt.Errorf("client.UserGrpcImpl/FindByRefreshToken | unexpected type: %T", res)
+	}
+
+	return user, err
 }
 
 func (u *UserGrpcImpl) Upsert(ctx context.Context, data *pb.LoginWithGoogleRequest) (*pb.User, error) {

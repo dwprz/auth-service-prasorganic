@@ -26,6 +26,16 @@ func (u *UserGrpcMock) FindByEmail(ctx context.Context, email string) (*pb.FindU
 	return arguments.Get(0).(*pb.FindUserResponse), arguments.Error(1)
 }
 
+func (u *UserGrpcMock) FindByRefreshToken(ctx context.Context, data *pb.RefreshToken) (*pb.FindUserResponse, error) {
+	arguments := u.Mock.Called(ctx, data)
+
+	if arguments.Get(0) == nil {
+		return nil, arguments.Error(1)
+	}
+
+	return arguments.Get(0).(*pb.FindUserResponse), arguments.Error(1)
+}
+
 func (u *UserGrpcMock) Create(ctx context.Context, data *pb.RegisterRequest) error {
 	arguments := u.Mock.Called(ctx, data)
 

@@ -191,3 +191,21 @@ func (a *AuthImpl) Login(ctx context.Context, data *dto.LoginReq) (*dto.LoginRes
 		},
 	}, nil
 }
+
+func (a *AuthImpl) RefreshToken(ctx context.Context, refreshToken string) (*entity.Tokens, error) {
+	res, err := a.grpcClient.User.FindByRefreshToken(ctx, &pb.RefreshToken{
+		Token: refreshToken,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	accessToken, err := a.helper.GenerateAccessToken(res.Data.UserId, res.Data.Email, res.Data.Role)
+	if err != nil {
+		return nil, err
+	}
+
+	return &entity.Tokens{
+		AccessToken: accessToken,
+	}, nil
+}
