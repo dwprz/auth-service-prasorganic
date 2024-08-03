@@ -2,10 +2,10 @@ package test
 
 import (
 	"encoding/base64"
-	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
-	"github.com/dwprz/prasorganic-auth-service/src/mock/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/restful"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
 	"github.com/dwprz/prasorganic-auth-service/test/util"
 	"github.com/dwprz/prasorganic-proto/protogen/user"
@@ -82,10 +82,11 @@ func (v *VerifyRegisterTestSuite) Test_Success() {
 }
 
 func (v *VerifyRegisterTestSuite) MockUserGrpcClient_FindByEmail(email string) {
-
-	v.userGrpcClient.Mock.On("FindByEmail", mock.Anything, &user.Email{
-		Email: email,
-	}).Return(&user.FindUserResponse{Data: nil}, nil)
+	v.userGrpcClient.Mock.On("FindByEmail", mock.Anything, email).Return(
+		&user.FindUserResponse{
+			Data: nil,
+		}, nil,
+	)
 }
 
 func (v *VerifyRegisterTestSuite) MockUserGrpcClient_Create(data *dto.RegisterReq) {

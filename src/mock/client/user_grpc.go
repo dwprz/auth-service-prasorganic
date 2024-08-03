@@ -52,8 +52,14 @@ func (u *UserGrpcMock) Upsert(ctx context.Context, data *pb.LoginWithGoogleReque
 	return arguments.Get(0).(*pb.User), arguments.Error(1)
 }
 
-func (u *UserGrpcMock) UpdateRefreshToken(ctx context.Context, data *pb.RefreshToken) error {
+func (u *UserGrpcMock) AddRefreshToken(ctx context.Context, data *pb.AddRefreshToken) error {
 	arguments := u.Mock.Called(ctx, data)
+
+	return arguments.Error(0)
+}
+
+func (u *UserGrpcMock) SetNullRefreshToken(ctx context.Context, refreshToken string) error {
+	arguments := u.Mock.Called(ctx, refreshToken)
 
 	return arguments.Error(0)
 }

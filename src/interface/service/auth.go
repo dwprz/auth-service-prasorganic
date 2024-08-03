@@ -13,4 +13,5 @@ type Auth interface {
 	LoginWithGoogle(ctx context.Context, data *dto.LoginWithGoogleReq) (*dto.LoginWithGoogleRes, error)
 	Login(ctx context.Context, data *dto.LoginReq) (*dto.LoginRes, error)
 	RefreshToken(ctx context.Context, refreshToken string) (*entity.Tokens, error)
+	SetNullRefreshToken(ctx context.Context, refreshToken string) error 
 }

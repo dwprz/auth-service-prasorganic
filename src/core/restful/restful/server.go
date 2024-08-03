@@ -3,11 +3,13 @@ package restful
 import (
 	"net/http"
 	"time"
+
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/handler"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/middleware"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/router"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 // this main restful server
@@ -27,6 +29,13 @@ func NewServer(arh *handler.AuthRestful, m *middleware.Middleware, conf *config.
 		WriteTimeout:  20 * time.Second,
 		ErrorHandler:  m.Error,
 	})
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     "http://restful.local:80",
+		AllowMethods:     "GET,POST,HEAD,PUT,DELETE,PATCH",
+		AllowHeaders:     "*",
+		AllowCredentials: true,
+	}))
 
 	router.AddAuth(app, arh, m)
 

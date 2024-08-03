@@ -12,4 +12,5 @@ type Helper interface {
 	GenerateRefreshToken() (string, error)
 	VerifyJwt(token string) (*jwt.MapClaims, error)
 	HandlePanic(name string, c *fiber.Ctx)
+	ClearCookie(name string, path string) *fiber.Cookie
 }

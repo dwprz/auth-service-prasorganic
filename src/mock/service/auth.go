@@ -59,3 +59,9 @@ func (a *AuthMock) RefreshToken(ctx context.Context, refreshToken string) (*enti
 
 	return arguments.Get(0).(*entity.Tokens), arguments.Error(1)
 }
+
+func (a *AuthMock) SetNullRefreshToken(ctx context.Context, refreshToken string) error {
+	arguments := a.Mock.Called(ctx, refreshToken)
+
+	return arguments.Error(0)
+}

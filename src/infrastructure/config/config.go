@@ -51,7 +51,7 @@ type Config struct {
 	ApiGateway           *apiGateway
 	RabbitMQEmailService *rabbitMQEmailService
 	GoogleOauth          *googleOauth
-	JWT                  *jwt
+	Jwt                  *jwt
 }
 
 // *config ini hanya berisi env variable

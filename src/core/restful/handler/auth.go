@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"time"
-
 	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
 	"github.com/dwprz/prasorganic-auth-service/src/interface/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/interface/service"
@@ -14,6 +12,7 @@ import (
 	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
+	"time"
 )
 
 type AuthRestful struct {
@@ -78,7 +77,7 @@ func (a *AuthRestful) VerifyRegister(c *fiber.Ctx) error {
 		return err
 	}
 
-	c.ClearCookie("pending_register")
+	c.Cookie(a.helper.ClearCookie("pending_register", "/api/auth/register/verify")) // clear cookie
 
 	return c.Status(200).JSON(fiber.Map{"data": "verify register successfully"})
 }
@@ -135,7 +134,7 @@ func (a *AuthRestful) LoginWithGoogleCallback(c *fiber.Ctx) error {
 		return err
 	}
 
-	c.ClearCookie("oauth_state")
+	c.Cookie(a.helper.ClearCookie("oauth_state", "/api/auth/login/google/callback")) // clear cookie
 
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
@@ -148,7 +147,7 @@ func (a *AuthRestful) LoginWithGoogleCallback(c *fiber.Ctx) error {
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
 		Value:    refreshToken,
-		Path:     "/api/auth/token/refresh",
+		Path:     "/",
 		HTTPOnly: true,
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
 	})
@@ -178,7 +177,7 @@ func (a *AuthRestful) Login(c *fiber.Ctx) error {
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
 		Value:    res.Tokens.RefreshToken,
-		Path:     "/api/auth/token/refresh",
+		Path:     "/",
 		HTTPOnly: true,
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
 	})
@@ -207,4 +206,16 @@ func (a *AuthRestful) RefreshToken(c *fiber.Ctx) error {
 	})
 
 	return c.Status(201).JSON(fiber.Map{"data": "refresh token successfully"})
+}
+
+func (a *AuthRestful) Logout(c *fiber.Ctx) error {
+	refreshToken := c.Cookies("refresh_token")
+
+	a.authService.SetNullRefreshToken(context.Background(), refreshToken)
+
+	// clear cookie
+	c.Cookie(a.helper.ClearCookie("refresh_token", "/"))
+	c.Cookie(a.helper.ClearCookie("access_token", "/"))
+
+	return c.Status(200).JSON(fiber.Map{"data": "logout successfully"})
 }

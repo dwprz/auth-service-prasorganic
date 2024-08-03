@@ -11,6 +11,7 @@ func AddAuth(app *fiber.App, h *handler.AuthRestful, m *middleware.Middleware) {
 	app.Add("POST", "/api/auth/register/verify", h.VerifyRegister)
 	app.Add("POST", "/api/auth/login", h.Login)
 	app.Add("POST", "/api/auth/token/refresh", h.RefreshToken)
+	app.Add("POST", "/api/auth/logout", h.Logout)
 	app.Add("GET", "/api/auth/login/google", h.LoginWithGoogle)
 	app.Add("GET", "/api/auth/login/google/callback", m.FetchGoogleUser, h.LoginWithGoogleCallback)
 }

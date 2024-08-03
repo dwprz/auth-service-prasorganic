@@ -18,7 +18,7 @@ func (h *HelperImpl) GenerateAccessToken(userId string, email string, role strin
 		"exp":     time.Now().Add(1 * time.Hour).Unix(),
 	})
 
-	accessToken, err := token.SignedString(h.conf.JWT.PrivateKey)
+	accessToken, err := token.SignedString(h.conf.Jwt.PrivateKey)
 	if err != nil {
 		return "", err
 	}
@@ -38,7 +38,7 @@ func (h *HelperImpl) GenerateRefreshToken() (string, error) {
 		"exp": time.Now().Add(24 * 30 * time.Hour).Unix(),
 	})
 
-	accessToken, err := token.SignedString(h.conf.JWT.PrivateKey)
+	accessToken, err := token.SignedString(h.conf.Jwt.PrivateKey)
 	if err != nil {
 		return "", err
 	}
@@ -52,7 +52,7 @@ func (h *HelperImpl) VerifyJwt(token string) (*jwt.MapClaims, error) {
 			return nil, fmt.Errorf("unexpected token method: %v", t.Header["alg"])
 		}
 
-		return h.conf.JWT.PublicKey, nil
+		return h.conf.Jwt.PublicKey, nil
 	})
 
 	if err != nil {

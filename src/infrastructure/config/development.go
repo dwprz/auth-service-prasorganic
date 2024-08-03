@@ -53,6 +53,6 @@ func setUpForDevelopment(logger *logrus.Logger) *Config {
 		ApiGateway:           apiGatewayConf,
 		RabbitMQEmailService: rabbitMQConf,
 		GoogleOauth:          googleOauthConf,
-		JWT:                  jwtConf,
+		Jwt:                  jwtConf,
 	}
 }

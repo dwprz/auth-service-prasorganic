@@ -170,7 +170,7 @@ func (a *AuthImpl) Login(ctx context.Context, data *dto.LoginReq) (*dto.LoginRes
 		return nil, err
 	}
 
-	go a.grpcClient.User.UpdateRefreshToken(ctx, &pb.RefreshToken{
+	go a.grpcClient.User.AddRefreshToken(ctx, &pb.AddRefreshToken{
 		Email: data.Email,
 		Token: refreshToken,
 	})
@@ -196,6 +196,7 @@ func (a *AuthImpl) RefreshToken(ctx context.Context, refreshToken string) (*enti
 	res, err := a.grpcClient.User.FindByRefreshToken(ctx, &pb.RefreshToken{
 		Token: refreshToken,
 	})
+
 	if err != nil {
 		return nil, err
 	}
@@ -208,4 +209,10 @@ func (a *AuthImpl) RefreshToken(ctx context.Context, refreshToken string) (*enti
 	return &entity.Tokens{
 		AccessToken: accessToken,
 	}, nil
+}
+
+func (a *AuthImpl) SetNullRefreshToken(ctx context.Context, refreshToken string) error {
+	go a.grpcClient.User.SetNullRefreshToken(ctx, refreshToken)
+
+	return nil
 }

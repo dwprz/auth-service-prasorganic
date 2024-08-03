@@ -51,3 +51,13 @@ func (h *HelperMock) VerifyJwt(token string) (*jwt.MapClaims, error) {
 }
 
 func (h *HelperMock) HandlePanic(name string, c *fiber.Ctx) {}
+
+func (h *HelperMock) ClearCookie(name string, path string) *fiber.Cookie {
+	arguments := h.Mock.Called(name, path)
+
+	if arguments.Get(0) == nil {
+		return nil
+	}
+
+	return arguments.Get(0).(*fiber.Cookie)
+}

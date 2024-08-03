@@ -84,6 +84,6 @@ func setUpForNonDevelopment(appStatus string, logger *logrus.Logger) *Config {
 		ApiGateway:           apiGatewayConf,
 		RabbitMQEmailService: rabbitMQEmailServiceConf,
 		GoogleOauth:          googleOauthConf,
-		JWT:                  jwtConf,
+		Jwt:                  jwtConf,
 	}
 }

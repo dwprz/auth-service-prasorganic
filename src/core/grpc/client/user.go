@@ -101,11 +101,19 @@ func (u *UserGrpcImpl) Upsert(ctx context.Context, data *pb.LoginWithGoogleReque
 	return user, err
 }
 
-func (u *UserGrpcImpl) UpdateRefreshToken(ctx context.Context, data *pb.RefreshToken) error {
+func (u *UserGrpcImpl) AddRefreshToken(ctx context.Context, data *pb.AddRefreshToken) error {
 	_, err := u.cbreaker.Execute(func() (any, error) {
-		_, err := u.client.UpdateRefreshToken(ctx, &pb.RefreshToken{
-			Email: data.Email,
-			Token: data.Token,
+		_, err := u.client.AddRefreshToken(ctx, data)
+		return nil, err
+	})
+
+	return err
+}
+
+func (u *UserGrpcImpl) SetNullRefreshToken(ctx context.Context, refreshToken string) error {
+	_, err := u.cbreaker.Execute(func() (any, error) {
+		_, err := u.client.SetNullRefreshToken(ctx, &pb.RefreshToken{
+			Token: refreshToken,
 		})
 		return nil, err
 	})

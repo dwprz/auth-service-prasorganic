@@ -10,5 +10,6 @@ type UserGrpc interface {
 	FindByEmail(ctx context.Context, email string) (*pb.FindUserResponse, error)
 	FindByRefreshToken(ctx context.Context, data *pb.RefreshToken) (*pb.FindUserResponse, error)
 	Upsert(ctx context.Context, data *pb.LoginWithGoogleRequest) (*pb.User, error)
-	UpdateRefreshToken(ctx context.Context, data *pb.RefreshToken) error
+	AddRefreshToken(ctx context.Context, data *pb.AddRefreshToken) error
+	SetNullRefreshToken(ctx context.Context, refreshToken string) error 
 }
