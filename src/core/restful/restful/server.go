@@ -37,7 +37,7 @@ func NewServer(arh *handler.AuthRestful, m *middleware.Middleware, conf *config.
 		AllowCredentials: true,
 	}))
 
-	router.AddAuth(app, arh, m)
+	router.Create(app, arh, m)
 
 	return &Server{
 		app:                app,

@@ -37,7 +37,7 @@ func (a *AuthRestful) Register(c *fiber.Ctx) error {
 	request := new(dto.RegisterReq)
 
 	if err := c.BodyParser(request); err != nil {
-		return &errors.Response{Code: 400, Message: err.Error()}
+		return &errors.Response{HttpCode: 400, Message: err.Error()}
 	}
 
 	email, err := a.authService.Register(context.Background(), request)
@@ -59,15 +59,15 @@ func (a *AuthRestful) Register(c *fiber.Ctx) error {
 func (a *AuthRestful) VerifyRegister(c *fiber.Ctx) error {
 	defer a.helper.HandlePanic("auth handler panic (verify register)", c)
 
-	request := new(dto.VerifyRegisterReq)
+	request := new(dto.VerifyOtpReq)
 
 	if err := c.BodyParser(request); err != nil {
-		return &errors.Response{Code: 400, Message: err.Error()}
+		return &errors.Response{HttpCode: 400, Message: err.Error()}
 	}
 
 	email, err := base64.StdEncoding.DecodeString(c.Cookies("pending_register"))
 	if err != nil {
-		return &errors.Response{Code: 400, Message: err.Error()}
+		return &errors.Response{HttpCode: 400, Message: err.Error()}
 	}
 
 	request.Email = string(email)
@@ -189,7 +189,7 @@ func (a *AuthRestful) RefreshToken(c *fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token")
 
 	if _, err := a.helper.VerifyJwt(refreshToken); err != nil {
-		return &errors.Response{Code: 401, Message: "refresh token is invalid"}
+		return &errors.Response{HttpCode: 401, Message: "refresh token is invalid"}
 	}
 
 	res, err := a.authService.RefreshToken(context.Background(), refreshToken)

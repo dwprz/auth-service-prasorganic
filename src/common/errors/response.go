@@ -1,8 +1,11 @@
 package errors
 
+import "google.golang.org/grpc/codes"
+
 type Response struct {
-	Code    int
-	Message string
+	HttpCode int
+	GrpcCode codes.Code
+	Message  string
 }
 
 func (err *Response) Error() string {

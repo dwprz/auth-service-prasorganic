@@ -16,14 +16,12 @@ func NewAuthMock() *AuthMock {
 	}
 }
 
-func (a *AuthMock) CacheRegisterReq(ctx context.Context, data *dto.RegisterReq) error {
-	arguments := a.Mock.Called(ctx, data)
-
-	return arguments.Error(0)
-}
+func (a *AuthMock) CacheRegisterReq(ctx context.Context, data *dto.RegisterReq) {}
 
 func (a *AuthMock) FindRegisterReq(ctx context.Context, email string) *dto.RegisterReq {
 	arguments := a.Mock.Called(ctx, email)
 
 	return arguments.Get(0).(*dto.RegisterReq)
 }
+
+func (a *AuthMock) DeleteRegisterReq(ctx context.Context, email string) {}

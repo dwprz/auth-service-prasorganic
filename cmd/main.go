@@ -8,10 +8,12 @@ import (
 	"github.com/dwprz/prasorganic-auth-service/src/cache"
 	"github.com/dwprz/prasorganic-auth-service/src/common/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/common/logger"
+	"github.com/dwprz/prasorganic-auth-service/src/common/util"
 	"github.com/dwprz/prasorganic-auth-service/src/core/broker"
 	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/client"
 	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/grpc"
 	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/interceptor"
+	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/server"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/handler"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/middleware"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/restful"
@@ -38,12 +40,11 @@ func main() {
 	handleCloseApp(closeCH)
 
 	appStatus := os.Getenv("PRASORGANIC_APP_STATUS")
-
 	logger := logger.New()
 	conf := config.New(appStatus, logger)
-	redis := database.NewRedisCluster(conf)
-	authCache := cache.NewAuth(redis, logger)
-	validate := validator.New()
+	redisDB := database.NewRedisCluster(conf)
+	authCache := cache.NewAuth(redisDB, logger)
+	validator := validator.New()
 	helper := helper.New(conf, logger)
 
 	cbreaker := cbreaker.New(logger)
@@ -57,7 +58,11 @@ func main() {
 	rabbitMQClient := broker.NewRabbitMQClient(conf, logger)
 	defer rabbitMQClient.Close()
 
-	authService := service.NewAuth(grpcClient, rabbitMQClient, validate, authCache, logger, conf, helper)
+	util := util.New()
+	otpCache := cache.NewOtp(redisDB, logger)
+	otpService := service.NewOtp(validator, rabbitMQClient, otpCache, util)
+
+	authService := service.NewAuth(grpcClient, otpService, validator, authCache, logger, conf, helper)
 	googleOauthConf := oauth.NewGoogleConfig(conf, helper)
 
 	authRestfulHandler := handler.NewAuthRestful(authService, googleOauthConf, logger, helper)
@@ -68,5 +73,14 @@ func main() {
 
 	go restfulServer.Run()
 
+	otpGrpcServer := server.NewOtpGrpc(logger, otpService)
+	unaryResponseInterceptor := interceptor.NewUnaryResponse(logger, helper)
+
+	grpcServer := grpc.NewServer(conf.CurrentApp.GrpcPort, otpGrpcServer, unaryResponseInterceptor, logger)
+	defer grpcServer.Stop()
+
+	go grpcServer.Run()
+
 	<-closeCH
 }
+

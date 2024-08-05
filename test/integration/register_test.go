@@ -1,21 +1,22 @@
 package test
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/restful"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
 	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
-	"github.com/dwprz/prasorganic-auth-service/src/mock/helper"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/util"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
-	"github.com/dwprz/prasorganic-auth-service/test/util"
+	utiltest "github.com/dwprz/prasorganic-auth-service/test/util"
 	"github.com/dwprz/prasorganic-proto/protogen/user"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 // *nyalakan database nya terlebih dahulu
@@ -29,19 +30,19 @@ type RegisterTestSuite struct {
 	redisDB        *redis.ClusterClient
 	conf           *config.Config
 	logger         *logrus.Logger
-	helper         *helper.HelperMock
+	util           *util.UtilMock
 }
 
 func (r *RegisterTestSuite) SetupSuite() {
 	// mock
 	r.userGrpcClient = client.NewUserMock()
 
-	restfulServer, redisDB, conf, logger, helper := util.NewRestfulServer(r.userGrpcClient)
+	restfulServer, redisDB, conf, logger, util := utiltest.NewRestfulServer(r.userGrpcClient)
 	r.restfulServer = restfulServer
 	r.redisDB = redisDB
 	r.conf = conf
 	r.logger = logger
-	r.helper = helper
+	r.util = util
 }
 
 func (r *RegisterTestSuite) TearDownSuite() {
@@ -64,7 +65,7 @@ func (r *RegisterTestSuite) Test_Success() {
 
 	assert.Equal(r.T(), 200, res.StatusCode)
 
-	resBody := util.UnmarshalResponseBody(res.Body)
+	resBody := utiltest.UnmarshalResponseBody(res.Body)
 	assert.NotNil(r.T(), resBody["data"])
 }
 
@@ -83,7 +84,7 @@ func (r *RegisterTestSuite) Test_AlreadyExists() {
 
 	assert.Equal(r.T(), 409, res.StatusCode)
 
-	resBody := util.UnmarshalResponseBody(res.Body)
+	resBody := utiltest.UnmarshalResponseBody(res.Body)
 	assert.NotNil(r.T(), resBody["errors"])
 }
 
@@ -100,12 +101,12 @@ func (r *RegisterTestSuite) Test_InvalidInput() {
 
 	assert.Equal(r.T(), 400, res.StatusCode)
 
-	resBody := util.UnmarshalResponseBody(res.Body)
+	resBody := utiltest.UnmarshalResponseBody(res.Body)
 	assert.NotNil(r.T(), resBody["errors"])
 }
 
 func (r *RegisterTestSuite) MockHelper_GenerateOtp(otp string) {
-	r.helper.Mock.On("GenerateOtp").Return(otp, nil)
+	r.util.Mock.On("GenerateOtp").Return(otp, nil)
 }
 
 func (r *RegisterTestSuite) MockUserGrpcClient_FindByEmail(email string, data *user.User) {
@@ -116,7 +117,7 @@ func (r *RegisterTestSuite) MockUserGrpcClient_FindByEmail(email string, data *u
 }
 
 func (r *RegisterTestSuite) CreateRegisterRequest(body *dto.RegisterReq) *http.Request {
-	reqBody := util.MarshalRequestBody(body)
+	reqBody := utiltest.MarshalRequestBody(body)
 
 	request := httptest.NewRequest("POST", "/api/auth/register", reqBody)
 	request.Header.Set("Content-Type", "application/json")

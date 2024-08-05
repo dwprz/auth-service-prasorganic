@@ -2,12 +2,17 @@ package test
 
 import (
 	"encoding/base64"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/restful"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
 	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
-	"github.com/dwprz/prasorganic-auth-service/src/mock/helper"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/util"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
-	"github.com/dwprz/prasorganic-auth-service/test/util"
+	utiltest "github.com/dwprz/prasorganic-auth-service/test/util"
 	"github.com/dwprz/prasorganic-proto/protogen/user"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
@@ -15,10 +20,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/crypto/bcrypt"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
 )
 
 // go test -v ./test/integration/... -count=1 -p=1
@@ -31,19 +32,19 @@ type VerifyRegisterTestSuite struct {
 	redisDB        *redis.ClusterClient
 	conf           *config.Config
 	logger         *logrus.Logger
-	helper         *helper.HelperMock
+	util           *util.UtilMock
 }
 
 func (v *VerifyRegisterTestSuite) SetupSuite() {
 	// mock
 	v.userGrpcClient = client.NewUserMock()
 
-	restfulServer, redisDB, conf, logger, helper := util.NewRestfulServer(v.userGrpcClient)
+	restfulServer, redisDB, conf, logger, util := utiltest.NewRestfulServer(v.userGrpcClient)
 	v.restfulServer = restfulServer
 	v.redisDB = redisDB
 	v.conf = conf
 	v.logger = logger
-	v.helper = helper
+	v.util = util
 }
 
 func (v *VerifyRegisterTestSuite) TearDownSuite() {
@@ -68,7 +69,7 @@ func (v *VerifyRegisterTestSuite) Test_Success() {
 	assert.NoError(v.T(), err)
 
 	// verify register
-	verifyRegisterReq := &dto.VerifyRegisterReq{
+	verifyRegisterReq := &dto.VerifyOtpReq{
 		Otp: otp,
 	}
 
@@ -92,25 +93,25 @@ func (v *VerifyRegisterTestSuite) MockUserGrpcClient_FindByEmail(email string) {
 func (v *VerifyRegisterTestSuite) MockUserGrpcClient_Create(data *dto.RegisterReq) {
 
 	v.userGrpcClient.Mock.On("Create", mock.Anything, mock.MatchedBy(func(req *user.RegisterRequest) bool {
-		err := bcrypt.CompareHashAndPassword([]byte(req.Password), []byte(data.Password))
+		err := bcrypt.CompareHashAndPassword([]byte(req.Password), []byte("rahasia"))
 		return req.Email == data.Email && req.FullName == data.FullName && err == nil
 	})).Return(nil)
 }
 
 func (v *VerifyRegisterTestSuite) MockHelper_GenerateOtp(otp string) {
-	v.helper.Mock.On("GenerateOtp").Return(otp, nil)
+	v.util.Mock.On("GenerateOtp").Return(otp, nil)
 }
 
 func (v *VerifyRegisterTestSuite) CreateRegisterRequest(body *dto.RegisterReq) *http.Request {
-	reqBody := util.MarshalRequestBody(body)
+	reqBody := utiltest.MarshalRequestBody(body)
 
 	request := httptest.NewRequest("POST", "/api/auth/register", reqBody)
 	request.Header.Set("Content-Type", "application/json")
 	return request
 }
 
-func (v *VerifyRegisterTestSuite) CreateVerifyRegisterRequest(body *dto.VerifyRegisterReq, email string) *http.Request {
-	reqBody := util.MarshalRequestBody(body)
+func (v *VerifyRegisterTestSuite) CreateVerifyRegisterRequest(body *dto.VerifyOtpReq, email string) *http.Request {
+	reqBody := utiltest.MarshalRequestBody(body)
 
 	request := httptest.NewRequest("POST", "/api/auth/register/verify", reqBody)
 

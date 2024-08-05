@@ -3,12 +3,11 @@ package cache
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"time"
 	"github.com/dwprz/prasorganic-auth-service/src/interface/cache"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 type AuthImpl struct {
@@ -23,19 +22,19 @@ func NewAuth(r *redis.ClusterClient, l *logrus.Logger) cache.Auth {
 	}
 }
 
-func (a *AuthImpl) CacheRegisterReq(ctx context.Context, data *dto.RegisterReq) error {
+func (a *AuthImpl) CacheRegisterReq(ctx context.Context, data *dto.RegisterReq) {
 	key := "register_request:" + data.Email
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return fmt.Errorf("cache register (marshal): %w", err)
+		a.logger.WithFields(logrus.Fields{"location": "cache.AuthImpl/CacheRegisterReq", "section": "json.Marshal"}).Error(err)
+		return
 	}
 
 	if _, err := a.redis.SetEx(ctx, key, jsonData, 30*time.Minute).Result(); err != nil {
-		return fmt.Errorf("cache register (setex): %w", err)
+		a.logger.WithFields(logrus.Fields{"location": "cache.AuthImpl/CacheRegisterReq", "section": "redis.SetEx"}).Error(err)
+		return
 	}
-
-	return nil
 }
 
 func (a *AuthImpl) FindRegisterReq(ctx context.Context, email string) *dto.RegisterReq {
@@ -56,4 +55,13 @@ func (a *AuthImpl) FindRegisterReq(ctx context.Context, email string) *dto.Regis
 	}
 
 	return registerReq
+}
+
+func (a *AuthImpl) DeleteRegisterReq(ctx context.Context, email string) {
+	key := "register_request:" + email
+
+	_, err := a.redis.Del(ctx, key).Result()
+	if err != nil {
+		a.logger.WithFields(logrus.Fields{"location": "cache.AuthImpl/DeleteRegisterReq", "section": "redis.Del"}).Error(err)
+	}
 }

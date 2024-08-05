@@ -11,7 +11,7 @@ import (
 
 func (m *Middleware) FetchGoogleUser(c *fiber.Ctx) error {
 	if c.Query("state") != c.Cookies("oauth_state") {
-		return &errors.Response{Code: 401, Message: "invalid oauth state"}
+		return &errors.Response{HttpCode: 401, Message: "invalid oauth state"}
 	}
 
 	ctx := context.Background()

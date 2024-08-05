@@ -8,15 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dwprz/prasorganic-auth-service/src/mock/helper"
-	"github.com/dwprz/prasorganic-auth-service/src/mock/service"
 	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
+	"github.com/dwprz/prasorganic-auth-service/src/common/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/common/logger"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/handler"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/middleware"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/restful"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/oauth"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/service"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
 	"github.com/dwprz/prasorganic-auth-service/test/util"
 	"github.com/sirupsen/logrus"
@@ -32,19 +32,18 @@ type VerifyRegisterTestSuite struct {
 	restfulServer *restful.Server
 	authService   *service.AuthMock
 	logger        *logrus.Logger
-	helper        *helper.HelperMock
 }
 
 func (v *VerifyRegisterTestSuite) SetupSuite() {
 	v.logger = logger.New()
 	conf := config.New("DEVELOPMENT", v.logger)
-	v.helper = helper.NewMock()
+	helper := helper.New(conf, v.logger)
 
 	// mock
 	v.authService = service.NewAuthMock()
 
-	googleOauthConf := oauth.NewGoogleConfig(conf, v.helper)
-	authHandler := handler.NewAuthRestful(v.authService, googleOauthConf, v.logger, v.helper)
+	googleOauthConf := oauth.NewGoogleConfig(conf, helper)
+	authHandler := handler.NewAuthRestful(v.authService, googleOauthConf, v.logger, helper)
 
 	middleware := middleware.New(conf, googleOauthConf, v.logger)
 	v.restfulServer = restful.NewServer(authHandler, middleware, conf)
@@ -52,7 +51,7 @@ func (v *VerifyRegisterTestSuite) SetupSuite() {
 
 func (v *VerifyRegisterTestSuite) Test_Success() {
 
-	data := &dto.VerifyRegisterReq{
+	data := &dto.VerifyOtpReq{
 		Email: "johndoe123@gmail.com",
 		Otp:   "123456",
 	}
@@ -83,12 +82,12 @@ func (v *VerifyRegisterTestSuite) Test_Success() {
 }
 
 func (v *VerifyRegisterTestSuite) Test_InvalidOtp() {
-	data := &dto.VerifyRegisterReq{
+	data := &dto.VerifyOtpReq{
 		Email: "johndoe123@gmail.com",
 		Otp:   "invalid otp",
 	}
 
-	errorRes := &errors.Response{Code: 400, Message: "otp is invalid"}
+	errorRes := &errors.Response{HttpCode: 400, Message: "otp is invalid"}
 	v.authService.Mock.On("VerifyRegister", context.Background(), data).Return(errorRes)
 
 	reqBody := util.MarshalRequestBody(data)
@@ -116,12 +115,12 @@ func (v *VerifyRegisterTestSuite) Test_InvalidOtp() {
 
 func (v *VerifyRegisterTestSuite) Test_InvalidEmail() {
 
-	data := &dto.VerifyRegisterReq{
+	data := &dto.VerifyOtpReq{
 		Email: "invalid email",
 		Otp:   "123456",
 	}
 
-	errorRes := &errors.Response{Code: 400, Message: "email is invalid"}
+	errorRes := &errors.Response{HttpCode: 400, Message: "email is invalid"}
 	v.authService.Mock.On("VerifyRegister", context.Background(), data).Return(errorRes)
 
 	reqBody := util.MarshalRequestBody(data)

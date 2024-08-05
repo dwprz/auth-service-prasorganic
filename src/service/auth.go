@@ -2,12 +2,10 @@ package service
 
 import (
 	"context"
-
 	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
 	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/grpc"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
 	"github.com/dwprz/prasorganic-auth-service/src/interface/cache"
-	"github.com/dwprz/prasorganic-auth-service/src/interface/client"
 	"github.com/dwprz/prasorganic-auth-service/src/interface/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/interface/service"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
@@ -21,25 +19,25 @@ import (
 )
 
 type AuthImpl struct {
-	grpcClient     *grpc.Client
-	rabbitMQClient client.RabbitMQ
-	validate       *validator.Validate
-	cache          cache.Auth
-	logger         *logrus.Logger
-	conf           *config.Config
-	helper         helper.Helper
+	grpcClient *grpc.Client
+	otpService service.Otp
+	validate   *validator.Validate
+	authCache  cache.Auth
+	logger     *logrus.Logger
+	conf       *config.Config
+	helper     helper.Helper
 }
 
-func NewAuth(gc *grpc.Client, rc client.RabbitMQ, v *validator.Validate, c cache.Auth,
+func NewAuth(gc *grpc.Client, os service.Otp, v *validator.Validate, ac cache.Auth,
 	l *logrus.Logger, conf *config.Config, h helper.Helper) service.Auth {
 	return &AuthImpl{
-		grpcClient:     gc,
-		rabbitMQClient: rc,
-		validate:       v,
-		cache:          c,
-		logger:         l,
-		conf:           conf,
-		helper:         h,
+		grpcClient: gc,
+		otpService: os,
+		validate:   v,
+		authCache:  ac,
+		logger:     l,
+		conf:       conf,
+		helper:     h,
 	}
 }
 
@@ -55,50 +53,31 @@ func (a *AuthImpl) Register(ctx context.Context, data *dto.RegisterReq) (string,
 	}
 
 	if result.Data != nil {
-		return "", &errors.Response{Code: 409, Message: "user already exists"}
+		return "", &errors.Response{HttpCode: 409, Message: "user already exists"}
 	}
 
-	otp, err := a.helper.GenerateOtp()
+	encryptPwd, err := bcrypt.GenerateFromPassword([]byte(data.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
 	}
 
-	data.Otp = otp
+	data.Password = string(encryptPwd)
 
-	if err := a.cache.CacheRegisterReq(ctx, data); err != nil {
-		return "", err
-	}
-
-	request := &dto.VerifyRegisterReq{
-		Email: data.Email,
-		Otp:   otp,
-	}
-
-	go a.rabbitMQClient.Publish(ctx, "email", "otp", request)
+	go a.otpService.Send(ctx, data.Email)
+	go a.authCache.CacheRegisterReq(ctx, data)
 
 	return data.Email, nil
 }
 
-func (a *AuthImpl) VerifyRegister(ctx context.Context, data *dto.VerifyRegisterReq) error {
-	if err := a.validate.Struct(data); err != nil {
+func (a *AuthImpl) VerifyRegister(ctx context.Context, data *dto.VerifyOtpReq) error {
+	if err := a.otpService.Verify(ctx, data); err != nil {
 		return err
 	}
 
-	registerReq := a.cache.FindRegisterReq(ctx, data.Email)
+	registerReq := a.authCache.FindRegisterReq(ctx, data.Email)
 	if registerReq == nil {
-		return &errors.Response{Code: 404, Message: "register request not found"}
+		return &errors.Response{HttpCode: 404, Message: "register request not found"}
 	}
-
-	if registerReq.Otp != data.Otp {
-		return &errors.Response{Code: 400, Message: "otp is invalid"}
-	}
-
-	encryptPwd, err := bcrypt.GenerateFromPassword([]byte(registerReq.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	registerReq.Password = string(encryptPwd)
 
 	req := new(pb.RegisterRequest)
 	if err := copier.Copy(req, registerReq); err != nil {
@@ -115,6 +94,8 @@ func (a *AuthImpl) VerifyRegister(ctx context.Context, data *dto.VerifyRegisterR
 	if err = a.grpcClient.User.Create(ctx, req); err != nil {
 		return err
 	}
+
+	go a.authCache.DeleteRegisterReq(context.Background(), data.Email)
 
 	return nil
 }
@@ -153,11 +134,11 @@ func (a *AuthImpl) Login(ctx context.Context, data *dto.LoginReq) (*dto.LoginRes
 	}
 
 	if res.Data == nil {
-		return nil, &errors.Response{Code: 404, Message: "email is invalid"}
+		return nil, &errors.Response{HttpCode: 404, Message: "email is invalid"}
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(res.Data.Password), []byte(data.Password)); err != nil {
-		return nil, &errors.Response{Code: 401, Message: "password is invalid"}
+		return nil, &errors.Response{HttpCode: 401, Message: "password is invalid"}
 	}
 
 	accessToken, err := a.helper.GenerateAccessToken(res.Data.UserId, res.Data.Email, res.Data.Role)

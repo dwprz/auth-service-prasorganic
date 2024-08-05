@@ -6,6 +6,7 @@ import (
 )
 
 type Auth interface {
-	CacheRegisterReq(ctx context.Context, data *dto.RegisterReq) error
+	CacheRegisterReq(ctx context.Context, data *dto.RegisterReq)
 	FindRegisterReq(ctx context.Context, email string) *dto.RegisterReq
+	DeleteRegisterReq(ctx context.Context, email string)
 }

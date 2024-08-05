@@ -1,6 +1,9 @@
 package helper
 
 import (
+	"context"
+
+	"github.com/dwprz/prasorganic-auth-service/src/model/entity"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/mock"
@@ -14,12 +17,6 @@ func NewMock() *HelperMock {
 	return &HelperMock{
 		Mock: mock.Mock{},
 	}
-}
-
-func (h *HelperMock) GenerateOtp() (string, error) {
-	arguments := h.Mock.Called()
-
-	return arguments.String(0), arguments.Error(1)
 }
 
 func (h *HelperMock) GenerateOauthState() (string, error) {
@@ -38,6 +35,16 @@ func (h *HelperMock) GenerateRefreshToken() (string, error) {
 	arguments := h.Mock.Called()
 
 	return arguments.String(0), arguments.Error(1)
+}
+
+func (h *HelperMock) GetMetadata(ctx context.Context) *entity.Metadata {
+	arguments := h.Mock.Called(ctx)
+
+	if arguments.Get(0) == nil {
+		return nil
+	}
+
+	return arguments.Get(0).(*entity.Metadata)
 }
 
 func (h *HelperMock) VerifyJwt(token string) (*jwt.MapClaims, error) {

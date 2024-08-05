@@ -2,11 +2,12 @@ package config
 
 import (
 	"context"
-	vault "github.com/hashicorp/vault/api"
-	"github.com/sirupsen/logrus"
+	"encoding/base64"
 	"log"
 	"os"
 	"strings"
+	vault "github.com/hashicorp/vault/api"
+	"github.com/sirupsen/logrus"
 )
 
 func setUpForNonDevelopment(appStatus string, logger *logrus.Logger) *Config {
@@ -75,8 +76,23 @@ func setUpForNonDevelopment(appStatus string, logger *logrus.Logger) *Config {
 	googleOauthConf.RedirectURL = oauthSecrets.Data["GOOGLE_REDIRECT_URL"].(string)
 
 	jwtConf := new(jwt)
-	jwtConf.PrivateKey = loadRSAPrivateKey(jwtSecrets.Data["PRIVATE_KEY"].(string), logger)
-	jwtConf.PublicKey = loadRSAPublicKey(jwtSecrets.Data["PUBLIC_KEY"].(string), logger)
+
+	jwtPrivateKey := jwtSecrets.Data["PRIVATE_KEY"].(string)
+	base64Byte, err := base64.StdEncoding.DecodeString(jwtPrivateKey)
+	if err != nil {
+		logger.WithFields(logrus.Fields{"location": "config.setUpForNonDevelopment", "section": "base64.StdEncoding.DecodeString"}).Fatal(err)
+	}
+	jwtPrivateKey = string(base64Byte)
+
+	jwtPublicKey := jwtSecrets.Data["Public_KEY"].(string)
+	base64Byte, err = base64.StdEncoding.DecodeString(jwtPublicKey)
+	if err != nil {
+		logger.WithFields(logrus.Fields{"location": "config.setUpForNonDevelopment", "section": "base64.StdEncoding.DecodeString"}).Fatal(err)
+	}
+	jwtPublicKey = string(base64Byte)
+
+	jwtConf.PrivateKey = loadRSAPrivateKey(jwtPrivateKey, logger)
+	jwtConf.PublicKey = loadRSAPublicKey(jwtPublicKey, logger)
 
 	return &Config{
 		CurrentApp:           currentAppConf,

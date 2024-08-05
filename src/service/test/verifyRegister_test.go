@@ -2,13 +2,16 @@ package test
 
 import (
 	"context"
-	serviceinterface "github.com/dwprz/prasorganic-auth-service/src/interface/service"
-	"github.com/dwprz/prasorganic-auth-service/src/mock/cache"
-	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
+	"testing"
+	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
 	"github.com/dwprz/prasorganic-auth-service/src/common/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/common/logger"
 	grpcapp "github.com/dwprz/prasorganic-auth-service/src/core/grpc/grpc"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
+	serviceinterface "github.com/dwprz/prasorganic-auth-service/src/interface/service"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/cache"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
+	svcmock "github.com/dwprz/prasorganic-auth-service/src/mock/service"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
 	"github.com/dwprz/prasorganic-auth-service/src/service"
 	"github.com/dwprz/prasorganic-proto/protogen/user"
@@ -17,9 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
-	"testing"
 )
 
 // go test -p=1 -v ./src/service/test/... -count=1
@@ -28,6 +29,7 @@ import (
 type VerifyRegisterTestSuite struct {
 	suite.Suite
 	authService    serviceinterface.Auth
+	otpService     *svcmock.OtpMock
 	userGrpcClient *client.UserGrpcMock
 	authCache      *cache.AuthMock
 	logger         *logrus.Logger
@@ -47,15 +49,13 @@ func (v *VerifyRegisterTestSuite) SetupSuite() {
 
 	// mock
 	v.authCache = cache.NewAuthMock()
+	v.otpService = svcmock.NewOtpMock()
 
-	// mock
-	rabbitMQClient := client.NewRabbitMQMock()
-
-	v.authService = service.NewAuth(grpcClient, rabbitMQClient, validator, v.authCache, v.logger, conf, helper)
+	v.authService = service.NewAuth(grpcClient, v.otpService, validator, v.authCache, v.logger, conf, helper)
 }
 
 func (v *VerifyRegisterTestSuite) Test_Success() {
-	verifyRegisterReq := &dto.VerifyRegisterReq{
+	verifyRegisterReq := &dto.VerifyOtpReq{
 		Email: "johndoe123@gmail.com",
 		Otp:   "123456",
 	}
@@ -63,39 +63,40 @@ func (v *VerifyRegisterTestSuite) Test_Success() {
 	registerReq := &dto.RegisterReq{
 		Email:    "johndoe123@gmail.com",
 		FullName: "John Doe",
-		Password: "rahasia",
-		Otp:      verifyRegisterReq.Otp,
+		Password: "$2a$10$MI6/KH0.g8NSLthw86K9we9SFhHIT1c6RStWasZHBPAxVrPelFZAu",
 	}
 
+	v.otpService.Mock.On("Verify", mock.Anything, verifyRegisterReq).Return(nil)
 	v.authCache.Mock.On("FindRegisterReq", mock.Anything, verifyRegisterReq.Email).Return(registerReq)
 
-	v.MockUserGrpcClient_Create(registerReq, "rahasia", nil)
+	v.MockUserGrpcClient_Create(registerReq, nil)
 
 	err := v.authService.VerifyRegister(context.Background(), verifyRegisterReq)
 	assert.NoError(v.T(), err)
 }
 
-func (v *VerifyRegisterTestSuite) Test_InvalidEmail() {
-	verifyRegisterReq := &dto.VerifyRegisterReq{
-		Email: "123456",
-		Otp:   "123456",
+func (v *VerifyRegisterTestSuite) Test_Otp() {
+	verifyRegisterReq := &dto.VerifyOtpReq{
+		Email: "johndoe123@gmail.com",
+		Otp:   "invalid otp",
 	}
+
+	errRes := &errors.Response{HttpCode: 400, Message: "otp is invalid"}
+	v.otpService.Mock.On("Verify", mock.Anything, verifyRegisterReq).Return(errRes)
 
 	err := v.authService.VerifyRegister(context.Background(), verifyRegisterReq)
 	assert.Error(v.T(), err)
 
-	errorResp, ok := err.(validator.ValidationErrors)
+	errorResp, ok := err.(*errors.Response)
 
 	assert.Equal(v.T(), true, ok)
-	assert.NotEmpty(v.T(), errorResp)
+	assert.Equal(v.T(), 400, errorResp.HttpCode)
 }
 
-// memberikan argumen password secara langsung karena registerReq di hash method authService.VerifyRegister
-func (v *VerifyRegisterTestSuite) MockUserGrpcClient_Create(data *dto.RegisterReq, password string, returnArg error) {
+func (v *VerifyRegisterTestSuite) MockUserGrpcClient_Create(data *dto.RegisterReq, returnArg error) {
 
 	v.userGrpcClient.Mock.On("Create", mock.Anything, mock.MatchedBy(func(req *user.RegisterRequest) bool {
-		err := bcrypt.CompareHashAndPassword([]byte(req.Password), []byte(password))
-		return req.Email == data.Email && req.FullName == data.FullName && err == nil
+		return req.Email == data.Email && req.FullName == data.FullName && data.Password == req.Password
 	})).Return(returnArg)
 }
 

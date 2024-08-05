@@ -1,7 +1,6 @@
 package broker
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/dwprz/prasorganic-auth-service/src/interface/client"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
@@ -27,7 +26,7 @@ func NewRabbitMQClient(conf *config.Config, logger *logrus.Logger) client.Rabbit
 	}
 }
 
-func (r *RabbitMQClientImpl) Publish(ctx context.Context, exchange string, key string, message any) {
+func (r *RabbitMQClientImpl) Publish(exchange string, key string, message any) {
 	jsonData, err := json.Marshal(message)
 	if err != nil {
 		r.logger.WithFields(logrus.Fields{"location": "broker.RabbitMQClientImpl/Publish", "section": "json.Marshal"}).Error(err)
@@ -45,7 +44,7 @@ func (r *RabbitMQClientImpl) Publish(ctx context.Context, exchange string, key s
 
 	defer channel.Close()
 
-	if err := channel.PublishWithContext(ctx, exchange, key, false, false, msg); err != nil {
+	if err := channel.Publish(exchange, key, false, false, msg); err != nil {
 		r.logger.WithFields(logrus.Fields{"location": "broker.RabbitMQClientImpl/Publish", "section": "channel.PublishWithContext"}).Error(err)
 	}
 }

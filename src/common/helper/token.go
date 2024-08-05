@@ -7,6 +7,7 @@ import (
 	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
 	"github.com/golang-jwt/jwt/v5"
 	gonanoid "github.com/matoous/go-nanoid/v2"
+	"google.golang.org/grpc/codes"
 )
 
 func (h *HelperImpl) GenerateAccessToken(userId string, email string, role string) (string, error) {
@@ -63,5 +64,5 @@ func (h *HelperImpl) VerifyJwt(token string) (*jwt.MapClaims, error) {
 		return &claims, nil
 	}
 
-	return nil, &errors.Response{Code: 401, Message: "token is invalid"}
+	return nil, &errors.Response{HttpCode: 401, GrpcCode: codes.Unauthenticated, Message: "token is invalid"}
 }

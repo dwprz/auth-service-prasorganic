@@ -5,12 +5,6 @@ type RegisterReq struct {
 	Email    string `json:"email" validate:"required,email,min=5,max=100"`
 	FullName string `json:"full_name" validate:"required,min=3,max=100"`
 	Password string `json:"password" validate:"required,min=5,max=100"`
-	Otp      string `json:"otp,omitempty" validate:"omitempty"`
-}
-
-type VerifyRegisterReq struct {
-	Email string `json:"email" validate:"required,email,min=5,max=100"`
-	Otp   string `json:"otp" validate:"required,max=6"`
 }
 
 type LoginWithGoogleReq struct {
@@ -24,4 +18,14 @@ type LoginWithGoogleReq struct {
 type LoginReq struct {
 	Email    string `json:"email" validate:"required,email,min=5,max=100"`
 	Password string `json:"password" validate:"required,min=5,max=100"`
+}
+
+type SendOtpReq struct {
+	Email string `json:"email" validate:"required,email,min=5,max=100"`
+	Otp   string `json:"otp" validate:"required,max=6"`
+}
+
+type VerifyOtpReq struct {
+	Email string `json:"email" validate:"required,email,min=5,max=100"`
+	Otp   string `json:"otp" validate:"required,max=6"`
 }

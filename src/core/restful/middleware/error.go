@@ -28,7 +28,7 @@ func (m *Middleware) Error(c *fiber.Ctx, err error) error {
 	}
 
 	if responseError, ok := err.(*errors.Response); ok {
-		return c.Status(responseError.Code).JSON(fiber.Map{
+		return c.Status(int(responseError.HttpCode)).JSON(fiber.Map{
 			"errors": responseError.Message,
 		})
 	}

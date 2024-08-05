@@ -3,16 +3,17 @@ package test
 import (
 	"context"
 	"testing"
-
-	serviceinterface "github.com/dwprz/prasorganic-auth-service/src/interface/service"
-	"github.com/dwprz/prasorganic-auth-service/src/mock/cache"
-	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
-	"github.com/dwprz/prasorganic-auth-service/src/mock/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
 	"github.com/dwprz/prasorganic-auth-service/src/common/logger"
 	grpcapp "github.com/dwprz/prasorganic-auth-service/src/core/grpc/grpc"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
+	svcinterface "github.com/dwprz/prasorganic-auth-service/src/interface/service"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/cache"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/helper"
+	svcmock "github.com/dwprz/prasorganic-auth-service/src/mock/service"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
+	"golang.org/x/crypto/bcrypt"
 	"github.com/dwprz/prasorganic-auth-service/src/service"
 	"github.com/dwprz/prasorganic-proto/protogen/user"
 	"github.com/go-playground/validator/v10"
@@ -28,8 +29,9 @@ import (
 
 type RegisterTestSuite struct {
 	suite.Suite
-	authService    serviceinterface.Auth
 	userGrpcClient *client.UserGrpcMock
+	authService    svcinterface.Auth
+	otpService     *svcmock.OtpMock
 	authCache      *cache.AuthMock
 	logger         *logrus.Logger
 	helper         *helper.HelperMock
@@ -42,7 +44,6 @@ func (r *RegisterTestSuite) SetupSuite() {
 
 	// mock
 	r.helper = helper.NewMock()
-	// mock
 	r.userGrpcClient = client.NewUserMock()
 	userGrpcConn := new(grpc.ClientConn)
 
@@ -50,14 +51,12 @@ func (r *RegisterTestSuite) SetupSuite() {
 
 	// mock
 	r.authCache = cache.NewAuthMock()
-	// mock
-	rabbitMQClient := client.NewRabbitMQMock()
+	r.otpService = svcmock.NewOtpMock()
 
-	r.authService = service.NewAuth(grpcClient, rabbitMQClient, validator, r.authCache, r.logger, conf, r.helper)
+	r.authService = service.NewAuth(grpcClient, r.otpService, validator, r.authCache, r.logger, conf, r.helper)
 }
 
 func (r *RegisterTestSuite) Test_Success() {
-
 	req := &dto.RegisterReq{
 		Email:    "johndoe123@gmail.com",
 		FullName: "John Doe",
@@ -66,10 +65,13 @@ func (r *RegisterTestSuite) Test_Success() {
 
 	r.userGrpcClient.Mock.On("FindByEmail", mock.Anything, req.Email).Return(&user.FindUserResponse{Data: nil}, nil)
 
-	r.helper.Mock.On("GenerateOtp").Return("123456", nil)
+	r.otpService.Mock.On("Send", mock.Anything, req.Email).Return(nil)
 
-	r.authCache.Mock.On("CacheRegisterReq", mock.Anything, mock.MatchedBy(func(req *dto.RegisterReq) bool {
-		return req.Email == req.Email && req.FullName == req.FullName && req.Password == req.Password && req.Otp == "123456"
+	// memberikan argumen password secara langsung karena password di hash method authService.Register
+	r.authCache.Mock.On("CacheRegisterReq", mock.Anything, mock.MatchedBy(func(data *dto.RegisterReq) bool {
+
+		err := bcrypt.CompareHashAndPassword([]byte(data.Password), []byte("rahasia"))
+		return data.Email == req.Email && data.FullName == req.FullName && err == nil
 	})).Return(nil)
 
 	email, err := r.authService.Register(context.Background(), req)
@@ -79,9 +81,8 @@ func (r *RegisterTestSuite) Test_Success() {
 }
 
 func (r *RegisterTestSuite) Test_AlreadyExists() {
-
-	req := &dto.RegisterReq{
-		Email:    "userexisted@gmail.com",
+	req :=  &dto.RegisterReq{
+		Email:    "existeduser@gmail.com",
 		FullName: "John Doe",
 		Password: "rahasia",
 	}
@@ -92,7 +93,7 @@ func (r *RegisterTestSuite) Test_AlreadyExists() {
 	errorRes, ok := err.(*errors.Response)
 
 	assert.Equal(r.T(), true, ok)
-	assert.Equal(r.T(), 409, errorRes.Code)
+	assert.Equal(r.T(), 409, errorRes.HttpCode)
 	assert.Equal(r.T(), "", email)
 }
 

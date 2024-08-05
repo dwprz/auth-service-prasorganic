@@ -78,7 +78,7 @@ func (r *RegisterTestSuite) Test_AlreadyExists() {
 		Password: "rahasia",
 	}
 
-	errorRes := &errors.Response{Code: 409, Message: "user already exists"}
+	errorRes := &errors.Response{HttpCode: 409, Message: "user already exists"}
 	r.authService.Mock.On("Register", context.Background(), data).Return("", errorRes)
 
 	reqBody := util.MarshalRequestBody(data)
@@ -103,7 +103,7 @@ func (r *RegisterTestSuite) Test_InvalidEmail() {
 		Password: "rahasia",
 	}
 
-	errorRes := &errors.Response{Code: 400, Message: "email is invalid"}
+	errorRes := &errors.Response{HttpCode: 400, Message: "email is invalid"}
 	r.authService.Mock.On("Register", context.Background(), data).Return("", errorRes)
 
 	reqBody := util.MarshalRequestBody(data)
