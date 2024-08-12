@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func (h *HelperImpl) ClearCookie(name string, path string) *fiber.Cookie {
+func ClearCookie(name string, path string) *fiber.Cookie {
 	clearCookie := &fiber.Cookie{
 		Name:     name,
 		Value:    "",

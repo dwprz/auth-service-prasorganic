@@ -1,25 +1,25 @@
 package cbreaker
 
 import (
-	"github.com/sirupsen/logrus"
+	"time"
+
+	"github.com/dwprz/prasorganic-auth-service/src/common/log"
 	"github.com/sony/gobreaker/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"time"
 )
 
-func setupForUserGrpc(logger *logrus.Logger) *gobreaker.CircuitBreaker[any] {
+var UserGrpc *gobreaker.CircuitBreaker[any]
+
+func init() {
 	settings := gobreaker.Settings{
 		Name:        "user-grpc-client-circuit-breaker",
 		MaxRequests: 3,
 		Interval:    1 * time.Minute,
 		Timeout:     15 * time.Second,
 		ReadyToTrip: func(counts gobreaker.Counts) bool {
+
 			failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
-
-			logger.Infof("circuit breaker failure %v, total request is %v, means failure ration %v",
-				counts.TotalFailures, counts.Requests, failureRatio)
-
 			return counts.Requests >= 5 && failureRatio >= 0.8
 		},
 		IsSuccessful: func(err error) bool {
@@ -45,15 +45,14 @@ func setupForUserGrpc(logger *logrus.Logger) *gobreaker.CircuitBreaker[any] {
 				}
 			}
 
-			logger.Info("ini status code: ", st.Code())
+			log.Logger.Info("ini status code: ", st.Code())
 
 			return false
 		},
 		OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
-			logger.Infof("circuit breake %v from status %v to %v", name, from, to)
+			log.Logger.Infof("circuit breake %v from status %v to %v", name, from, to)
 		},
 	}
 
-	cbreaker := gobreaker.NewCircuitBreaker[any](settings)
-	return cbreaker
+	UserGrpc = gobreaker.NewCircuitBreaker[any](settings)
 }

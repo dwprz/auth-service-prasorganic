@@ -7,7 +7,7 @@ import (
 	"github.com/dwprz/prasorganic-auth-service/src/interface/util"
 )
 
-// *untuk utilitas yang memiliki kebutuhan untuk di mocking jika test
+// *untuk utilitas yang jika ditest memiliki kebutuhan untuk mocking
 
 type UtilImpl struct{}
 

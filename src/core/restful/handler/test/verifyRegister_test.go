@@ -9,17 +9,12 @@ import (
 	"time"
 
 	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
-	"github.com/dwprz/prasorganic-auth-service/src/common/helper"
-	"github.com/dwprz/prasorganic-auth-service/src/common/logger"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/handler"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/middleware"
-	"github.com/dwprz/prasorganic-auth-service/src/core/restful/restful"
-	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
-	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/oauth"
+	"github.com/dwprz/prasorganic-auth-service/src/core/restful/server"
 	"github.com/dwprz/prasorganic-auth-service/src/mock/service"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
 	"github.com/dwprz/prasorganic-auth-service/test/util"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -29,24 +24,18 @@ import (
 
 type VerifyRegisterTestSuite struct {
 	suite.Suite
-	restfulServer *restful.Server
+	restfulServer *server.Restful
 	authService   *service.AuthMock
-	logger        *logrus.Logger
 }
 
 func (v *VerifyRegisterTestSuite) SetupSuite() {
-	v.logger = logger.New()
-	conf := config.New("DEVELOPMENT", v.logger)
-	helper := helper.New(conf, v.logger)
-
 	// mock
 	v.authService = service.NewAuthMock()
 
-	googleOauthConf := oauth.NewGoogleConfig(conf, helper)
-	authHandler := handler.NewAuthRestful(v.authService, googleOauthConf, v.logger, helper)
+	authHandler := handler.NewAuth(v.authService)
 
-	middleware := middleware.New(conf, googleOauthConf, v.logger)
-	v.restfulServer = restful.NewServer(authHandler, middleware, conf)
+	middleware := middleware.New()
+	v.restfulServer = server.NewRestful(authHandler, middleware)
 }
 
 func (v *VerifyRegisterTestSuite) Test_Success() {

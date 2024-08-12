@@ -1,23 +1,18 @@
 package test
 
 import (
-	"context"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/dwprz/prasorganic-auth-service/src/mock/service"
 	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
-	"github.com/dwprz/prasorganic-auth-service/src/common/helper"
-	"github.com/dwprz/prasorganic-auth-service/src/common/logger"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/handler"
 	"github.com/dwprz/prasorganic-auth-service/src/core/restful/middleware"
-	"github.com/dwprz/prasorganic-auth-service/src/core/restful/restful"
-	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
-	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/oauth"
+	"github.com/dwprz/prasorganic-auth-service/src/core/restful/server"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/service"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
 	"github.com/dwprz/prasorganic-auth-service/test/util"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -26,24 +21,18 @@ import (
 
 type RegisterTestSuite struct {
 	suite.Suite
-	restfulServer *restful.Server
+	restfulServer *server.Restful
 	authService   *service.AuthMock
-	logger        *logrus.Logger
 }
 
 func (r *RegisterTestSuite) SetupSuite() {
-	r.logger = logger.New()
-	conf := config.New("DEVELOPMENT", r.logger)
-	helper := helper.New(conf, r.logger)
-
 	// mock
 	r.authService = service.NewAuthMock()
 
-	googleOauthConf := oauth.NewGoogleConfig(conf, helper)
-	authHandler := handler.NewAuthRestful(r.authService, googleOauthConf, r.logger, helper)
+	authHandler := handler.NewAuth(r.authService)
 
-	middleware := middleware.New(conf, googleOauthConf, r.logger)
-	r.restfulServer = restful.NewServer(authHandler, middleware, conf)
+	middleware := middleware.New()
+	r.restfulServer = server.NewRestful(authHandler, middleware)
 }
 
 func (r *RegisterTestSuite) Test_Success() {
@@ -54,7 +43,7 @@ func (r *RegisterTestSuite) Test_Success() {
 		Password: "rahasia",
 	}
 
-	r.authService.Mock.On("Register", context.Background(), data).Return("johndoe123@gamil.com", nil)
+	r.authService.Mock.On("Register", mock.Anything, data).Return("johndoe123@gamil.com", nil)
 
 	reqBody := util.MarshalRequestBody(data)
 
@@ -79,7 +68,7 @@ func (r *RegisterTestSuite) Test_AlreadyExists() {
 	}
 
 	errorRes := &errors.Response{HttpCode: 409, Message: "user already exists"}
-	r.authService.Mock.On("Register", context.Background(), data).Return("", errorRes)
+	r.authService.Mock.On("Register", mock.Anything, data).Return("", errorRes)
 
 	reqBody := util.MarshalRequestBody(data)
 
@@ -104,7 +93,7 @@ func (r *RegisterTestSuite) Test_InvalidEmail() {
 	}
 
 	errorRes := &errors.Response{HttpCode: 400, Message: "email is invalid"}
-	r.authService.Mock.On("Register", context.Background(), data).Return("", errorRes)
+	r.authService.Mock.On("Register", mock.Anything, data).Return("", errorRes)
 
 	reqBody := util.MarshalRequestBody(data)
 

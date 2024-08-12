@@ -2,47 +2,37 @@ package service
 
 import (
 	"context"
+
 	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
-	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/grpc"
-	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
+	"github.com/dwprz/prasorganic-auth-service/src/common/helper"
+	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/client"
+	v "github.com/dwprz/prasorganic-auth-service/src/infrastructure/validator"
 	"github.com/dwprz/prasorganic-auth-service/src/interface/cache"
-	"github.com/dwprz/prasorganic-auth-service/src/interface/helper"
 	"github.com/dwprz/prasorganic-auth-service/src/interface/service"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
 	"github.com/dwprz/prasorganic-auth-service/src/model/entity"
 	pb "github.com/dwprz/prasorganic-proto/protogen/user"
-	"github.com/go-playground/validator/v10"
 	"github.com/jinzhu/copier"
 	gonanoid "github.com/matoous/go-nanoid/v2"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthImpl struct {
-	grpcClient *grpc.Client
+	grpcClient *client.Grpc
 	otpService service.Otp
-	validate   *validator.Validate
 	authCache  cache.Auth
-	logger     *logrus.Logger
-	conf       *config.Config
-	helper     helper.Helper
 }
 
-func NewAuth(gc *grpc.Client, os service.Otp, v *validator.Validate, ac cache.Auth,
-	l *logrus.Logger, conf *config.Config, h helper.Helper) service.Auth {
+func NewAuth(gc *client.Grpc, os service.Otp, ac cache.Auth) service.Auth {
 	return &AuthImpl{
 		grpcClient: gc,
 		otpService: os,
-		validate:   v,
 		authCache:  ac,
-		logger:     l,
-		conf:       conf,
-		helper:     h,
 	}
 }
 
 func (a *AuthImpl) Register(ctx context.Context, data *dto.RegisterReq) (string, error) {
-	if err := a.validate.Struct(data); err != nil {
+	if err := v.Validate.Struct(data); err != nil {
 		return "", err
 	}
 
@@ -101,7 +91,7 @@ func (a *AuthImpl) VerifyRegister(ctx context.Context, data *dto.VerifyOtpReq) e
 }
 
 func (a *AuthImpl) LoginWithGoogle(ctx context.Context, data *dto.LoginWithGoogleReq) (*dto.LoginWithGoogleRes, error) {
-	if err := a.validate.Struct(data); err != nil {
+	if err := v.Validate.Struct(data); err != nil {
 		return nil, err
 	}
 
@@ -124,7 +114,7 @@ func (a *AuthImpl) LoginWithGoogle(ctx context.Context, data *dto.LoginWithGoogl
 }
 
 func (a *AuthImpl) Login(ctx context.Context, data *dto.LoginReq) (*dto.LoginRes, error) {
-	if err := a.validate.Struct(data); err != nil {
+	if err := v.Validate.Struct(data); err != nil {
 		return nil, err
 	}
 
@@ -141,12 +131,12 @@ func (a *AuthImpl) Login(ctx context.Context, data *dto.LoginReq) (*dto.LoginRes
 		return nil, &errors.Response{HttpCode: 401, Message: "password is invalid"}
 	}
 
-	accessToken, err := a.helper.GenerateAccessToken(res.Data.UserId, res.Data.Email, res.Data.Role)
+	accessToken, err := helper.GenerateAccessToken(res.Data.UserId, res.Data.Email, res.Data.Role)
 	if err != nil {
 		return nil, err
 	}
 
-	refreshToken, err := a.helper.GenerateRefreshToken()
+	refreshToken, err := helper.GenerateRefreshToken()
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +172,7 @@ func (a *AuthImpl) RefreshToken(ctx context.Context, refreshToken string) (*enti
 		return nil, err
 	}
 
-	accessToken, err := a.helper.GenerateAccessToken(res.Data.UserId, res.Data.Email, res.Data.Role)
+	accessToken, err := helper.GenerateAccessToken(res.Data.UserId, res.Data.Email, res.Data.Role)
 	if err != nil {
 		return nil, err
 	}

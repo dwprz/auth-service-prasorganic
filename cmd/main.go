@@ -6,23 +6,12 @@ import (
 	"syscall"
 
 	"github.com/dwprz/prasorganic-auth-service/src/cache"
-	"github.com/dwprz/prasorganic-auth-service/src/common/helper"
-	"github.com/dwprz/prasorganic-auth-service/src/common/logger"
 	"github.com/dwprz/prasorganic-auth-service/src/common/util"
 	"github.com/dwprz/prasorganic-auth-service/src/core/broker"
-	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/client"
-	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/grpc"
-	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/interceptor"
-	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/server"
-	"github.com/dwprz/prasorganic-auth-service/src/core/restful/handler"
-	"github.com/dwprz/prasorganic-auth-service/src/core/restful/middleware"
-	"github.com/dwprz/prasorganic-auth-service/src/core/restful/restful"
-	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/cbreaker"
-	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
+	"github.com/dwprz/prasorganic-auth-service/src/core/grpc"
+	"github.com/dwprz/prasorganic-auth-service/src/core/restful"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/database"
-	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/oauth"
 	"github.com/dwprz/prasorganic-auth-service/src/service"
-	"github.com/go-playground/validator/v10"
 )
 
 func handleCloseApp(closeCH chan struct{}) {
@@ -39,48 +28,29 @@ func main() {
 	closeCH := make(chan struct{})
 	handleCloseApp(closeCH)
 
-	appStatus := os.Getenv("PRASORGANIC_APP_STATUS")
-	logger := logger.New()
-	conf := config.New(appStatus, logger)
-	redisDB := database.NewRedisCluster(conf)
-	authCache := cache.NewAuth(redisDB, logger)
-	validator := validator.New()
-	helper := helper.New(conf, logger)
+	redisDB := database.NewRedisCluster()
+	authCache := cache.NewAuth(redisDB)
+	otpCache := cache.NewOtp(redisDB)
+	util := util.New()
 
-	cbreaker := cbreaker.New(logger)
-
-	unaryRequestInterceptor := interceptor.NewUnaryRequest(conf)
-	userGrpcClient, userGrpcConn := client.NewUserGrpc(cbreaker.UserGrpc, conf, unaryRequestInterceptor)
-
-	grpcClient := grpc.NewClient(userGrpcClient, userGrpcConn, logger)
+	grpcClient := grpc.InitClient()
 	defer grpcClient.Close()
 
-	rabbitMQClient := broker.NewRabbitMQClient(conf, logger)
-	defer rabbitMQClient.Close()
+	rabbitMQClient := broker.InitClient()
+	defer rabbitMQClient.Email.Close()
 
-	util := util.New()
-	otpCache := cache.NewOtp(redisDB, logger)
-	otpService := service.NewOtp(validator, rabbitMQClient, otpCache, util)
+	otpService := service.NewOtp(rabbitMQClient, otpCache, util)
+	authService := service.NewAuth(grpcClient, otpService, authCache)
 
-	authService := service.NewAuth(grpcClient, otpService, validator, authCache, logger, conf, helper)
-	googleOauthConf := oauth.NewGoogleConfig(conf, helper)
-
-	authRestfulHandler := handler.NewAuthRestful(authService, googleOauthConf, logger, helper)
-	middleware := middleware.New(conf, googleOauthConf, logger)
-
-	restfulServer := restful.NewServer(authRestfulHandler, middleware, conf)
+	restfulServer := restful.InitServer(authService)
 	defer restfulServer.Stop()
 
 	go restfulServer.Run()
 
-	otpGrpcServer := server.NewOtpGrpc(logger, otpService)
-	unaryResponseInterceptor := interceptor.NewUnaryResponse(logger, helper)
-
-	grpcServer := grpc.NewServer(conf.CurrentApp.GrpcPort, otpGrpcServer, unaryResponseInterceptor, logger)
+	grpcServer := grpc.InitServer(otpService)
 	defer grpcServer.Stop()
 
 	go grpcServer.Run()
 
 	<-closeCH
 }
-

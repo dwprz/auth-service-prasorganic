@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 )
 
-func (h *HelperImpl) GenerateOauthState() (string, error) {
+func GenerateOauthState() (string, error) {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
 		return "", err

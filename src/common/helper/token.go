@@ -5,12 +5,13 @@ import (
 	"time"
 
 	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
+	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
 	"github.com/golang-jwt/jwt/v5"
 	gonanoid "github.com/matoous/go-nanoid/v2"
 	"google.golang.org/grpc/codes"
 )
 
-func (h *HelperImpl) GenerateAccessToken(userId string, email string, role string) (string, error) {
+func GenerateAccessToken(userId string, email string, role string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 		"iss":     "prasorganic-auth-service",
 		"user_id": userId,
@@ -19,7 +20,7 @@ func (h *HelperImpl) GenerateAccessToken(userId string, email string, role strin
 		"exp":     time.Now().Add(1 * time.Hour).Unix(),
 	})
 
-	accessToken, err := token.SignedString(h.conf.Jwt.PrivateKey)
+	accessToken, err := token.SignedString(config.Conf.Jwt.PrivateKey)
 	if err != nil {
 		return "", err
 	}
@@ -27,7 +28,7 @@ func (h *HelperImpl) GenerateAccessToken(userId string, email string, role strin
 	return accessToken, nil
 }
 
-func (h *HelperImpl) GenerateRefreshToken() (string, error) {
+func GenerateRefreshToken() (string, error) {
 	tokenId, err := gonanoid.New()
 	if err != nil {
 		return "", err
@@ -39,7 +40,7 @@ func (h *HelperImpl) GenerateRefreshToken() (string, error) {
 		"exp": time.Now().Add(24 * 30 * time.Hour).Unix(),
 	})
 
-	accessToken, err := token.SignedString(h.conf.Jwt.PrivateKey)
+	accessToken, err := token.SignedString(config.Conf.Jwt.PrivateKey)
 	if err != nil {
 		return "", err
 	}
@@ -47,13 +48,13 @@ func (h *HelperImpl) GenerateRefreshToken() (string, error) {
 	return accessToken, nil
 }
 
-func (h *HelperImpl) VerifyJwt(token string) (*jwt.MapClaims, error) {
+func VerifyJwt(token string) (*jwt.MapClaims, error) {
 	jwtToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected token method: %v", t.Header["alg"])
 		}
 
-		return h.conf.Jwt.PublicKey, nil
+		return config.Conf.Jwt.PublicKey, nil
 	})
 
 	if err != nil {

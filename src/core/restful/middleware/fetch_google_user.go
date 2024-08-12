@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
+	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/oauth"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -17,7 +18,7 @@ func (m *Middleware) FetchGoogleUser(c *fiber.Ctx) error {
 	ctx := context.Background()
 
 	code := c.Query("code")
-	token, err := m.googleOauthConf.Exchange(ctx, code)
+	token, err := oauth.GoogleConf.Exchange(ctx, code)
 	if err != nil {
 		return err
 	}

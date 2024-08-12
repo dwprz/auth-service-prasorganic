@@ -5,15 +5,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/dwprz/prasorganic-auth-service/src/core/restful/restful"
-	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
-	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
+	"github.com/dwprz/prasorganic-auth-service/src/core/restful/server"
+	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/database"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/delivery"
 	"github.com/dwprz/prasorganic-auth-service/src/mock/util"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
 	utiltest "github.com/dwprz/prasorganic-auth-service/test/util"
 	"github.com/dwprz/prasorganic-proto/protogen/user"
 	"github.com/redis/go-redis/v9"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -25,28 +24,36 @@ import (
 
 type RegisterTestSuite struct {
 	suite.Suite
-	restfulServer  *restful.Server
-	userGrpcClient *client.UserGrpcMock
-	redisDB        *redis.ClusterClient
-	conf           *config.Config
-	logger         *logrus.Logger
-	util           *util.UtilMock
+	restfulServer    *server.Restful
+	userGrpcDelivery *delivery.UserGrpcMock
+	redisDB          *redis.ClusterClient
+	redistTestUtil   *utiltest.RedisTest
+	util             *util.UtilMock
 }
 
 func (r *RegisterTestSuite) SetupSuite() {
 	// mock
-	r.userGrpcClient = client.NewUserMock()
+	r.util = util.NewMock()
+	r.userGrpcDelivery = delivery.NewUserGrpcMock()
 
-	restfulServer, redisDB, conf, logger, util := utiltest.NewRestfulServer(r.userGrpcClient)
-	r.restfulServer = restfulServer
-	r.redisDB = redisDB
-	r.conf = conf
-	r.logger = logger
-	r.util = util
+	r.redisDB = database.NewRedisCluster()
+
+	authCache, otpCache := utiltest.InitCacheTest(r.redisDB)
+	rabbitMQClient, _ := utiltest.InitRabbitMQ()
+	otpService := utiltest.InitOtpService(rabbitMQClient, otpCache, r.util)
+
+	grpcClient := utiltest.InitGrpcClientTest(r.userGrpcDelivery)
+	authService := utiltest.InitAuthServiceTest(grpcClient, otpService, authCache)
+
+	r.restfulServer = utiltest.InitRestfulTest(authService)
+	r.redistTestUtil = utiltest.NewRedisTest(r.redisDB)
 }
 
 func (r *RegisterTestSuite) TearDownSuite() {
+	//r.redistTestUtil.Flushall()
 	r.redisDB.Close()
+
+	r.restfulServer.Stop()
 }
 
 func (r *RegisterTestSuite) Test_Success() {
@@ -56,7 +63,7 @@ func (r *RegisterTestSuite) Test_Success() {
 		Password: "rahasia",
 	}
 
-	r.MockUserGrpcClient_FindByEmail(registerReq.Email, nil)
+	r.MockUserGrpcDelivery_FindByEmail(registerReq.Email, nil)
 	r.MockHelper_GenerateOtp("123456")
 
 	request := r.CreateRegisterRequest(registerReq)
@@ -76,7 +83,7 @@ func (r *RegisterTestSuite) Test_AlreadyExists() {
 		Password: "rahasia",
 	}
 
-	r.MockUserGrpcClient_FindByEmail(registerReq.Email, new(user.User))
+	r.MockUserGrpcDelivery_FindByEmail(registerReq.Email, new(user.User))
 
 	request := r.CreateRegisterRequest(registerReq)
 	res, err := r.restfulServer.Test(request)
@@ -109,8 +116,8 @@ func (r *RegisterTestSuite) MockHelper_GenerateOtp(otp string) {
 	r.util.Mock.On("GenerateOtp").Return(otp, nil)
 }
 
-func (r *RegisterTestSuite) MockUserGrpcClient_FindByEmail(email string, data *user.User) {
-	r.userGrpcClient.Mock.On("FindByEmail", mock.Anything, email).Return(
+func (r *RegisterTestSuite) MockUserGrpcDelivery_FindByEmail(email string, data *user.User) {
+	r.userGrpcDelivery.Mock.On("FindByEmail", mock.Anything, email).Return(
 		&user.FindUserResponse{
 			Data: data,
 		}, nil)

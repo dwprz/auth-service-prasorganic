@@ -7,15 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dwprz/prasorganic-auth-service/src/core/restful/restful"
-	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
-	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
+	"github.com/dwprz/prasorganic-auth-service/src/core/restful/server"
+	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/database"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/delivery"
 	"github.com/dwprz/prasorganic-auth-service/src/mock/util"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
 	utiltest "github.com/dwprz/prasorganic-auth-service/test/util"
 	"github.com/dwprz/prasorganic-proto/protogen/user"
 	"github.com/redis/go-redis/v9"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -27,28 +26,36 @@ import (
 
 type VerifyRegisterTestSuite struct {
 	suite.Suite
-	restfulServer  *restful.Server
-	userGrpcClient *client.UserGrpcMock
-	redisDB        *redis.ClusterClient
-	conf           *config.Config
-	logger         *logrus.Logger
-	util           *util.UtilMock
+	restfulServer    *server.Restful
+	userGrpcDelivery *delivery.UserGrpcMock
+	redisDB          *redis.ClusterClient
+	redistTestUtil   *utiltest.RedisTest
+	util             *util.UtilMock
 }
 
 func (v *VerifyRegisterTestSuite) SetupSuite() {
 	// mock
-	v.userGrpcClient = client.NewUserMock()
+	v.util = util.NewMock()
+	v.userGrpcDelivery = delivery.NewUserGrpcMock()
 
-	restfulServer, redisDB, conf, logger, util := utiltest.NewRestfulServer(v.userGrpcClient)
-	v.restfulServer = restfulServer
-	v.redisDB = redisDB
-	v.conf = conf
-	v.logger = logger
-	v.util = util
+	v.redisDB = database.NewRedisCluster()
+
+	authCache, otpCache := utiltest.InitCacheTest(v.redisDB)
+	rabbitMQClient, _ := utiltest.InitRabbitMQ()
+	otpService := utiltest.InitOtpService(rabbitMQClient, otpCache, v.util)
+
+	grpcClient := utiltest.InitGrpcClientTest(v.userGrpcDelivery)
+	authService := utiltest.InitAuthServiceTest(grpcClient, otpService, authCache)
+
+	v.restfulServer = utiltest.InitRestfulTest(authService)
+	v.redistTestUtil = utiltest.NewRedisTest(v.redisDB)
 }
 
 func (v *VerifyRegisterTestSuite) TearDownSuite() {
+	v.redistTestUtil.Flushall()
 	v.redisDB.Close()
+
+	v.restfulServer.Stop()
 }
 
 func (v *VerifyRegisterTestSuite) Test_Success() {
@@ -61,19 +68,21 @@ func (v *VerifyRegisterTestSuite) Test_Success() {
 	}
 	const otp = "123456"
 
-	v.MockUserGrpcClient_FindByEmail(registerReq.Email)
+	v.MockUserGrpcDelivery_FindByEmail(registerReq.Email)
 	v.MockHelper_GenerateOtp(otp)
 
 	request := v.CreateRegisterRequest(registerReq)
 	_, err := v.restfulServer.Test(request)
 	assert.NoError(v.T(), err)
 
+	time.Sleep(500 * time.Millisecond) // meberi waktu redis untuk menyebarkan data ke node lain dalam cluster
+
 	// verify register
 	verifyRegisterReq := &dto.VerifyOtpReq{
 		Otp: otp,
 	}
 
-	v.MockUserGrpcClient_Create(registerReq)
+	v.MockUserGrpcDelivery_Create(registerReq)
 
 	request = v.CreateVerifyRegisterRequest(verifyRegisterReq, registerReq.Email)
 	res, err := v.restfulServer.Test(request)
@@ -82,17 +91,17 @@ func (v *VerifyRegisterTestSuite) Test_Success() {
 	assert.Equal(v.T(), 200, res.StatusCode)
 }
 
-func (v *VerifyRegisterTestSuite) MockUserGrpcClient_FindByEmail(email string) {
-	v.userGrpcClient.Mock.On("FindByEmail", mock.Anything, email).Return(
+func (v *VerifyRegisterTestSuite) MockUserGrpcDelivery_FindByEmail(email string) {
+	v.userGrpcDelivery.Mock.On("FindByEmail", mock.Anything, email).Return(
 		&user.FindUserResponse{
 			Data: nil,
 		}, nil,
 	)
 }
 
-func (v *VerifyRegisterTestSuite) MockUserGrpcClient_Create(data *dto.RegisterReq) {
+func (v *VerifyRegisterTestSuite) MockUserGrpcDelivery_Create(data *dto.RegisterReq) {
 
-	v.userGrpcClient.Mock.On("Create", mock.Anything, mock.MatchedBy(func(req *user.RegisterRequest) bool {
+	v.userGrpcDelivery.Mock.On("Create", mock.Anything, mock.MatchedBy(func(req *user.RegisterRequest) bool {
 		err := bcrypt.CompareHashAndPassword([]byte(req.Password), []byte("rahasia"))
 		return req.Email == data.Email && req.FullName == data.FullName && err == nil
 	})).Return(nil)

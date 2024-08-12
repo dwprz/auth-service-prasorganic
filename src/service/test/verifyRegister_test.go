@@ -3,20 +3,16 @@ package test
 import (
 	"context"
 	"testing"
+
 	"github.com/dwprz/prasorganic-auth-service/src/common/errors"
-	"github.com/dwprz/prasorganic-auth-service/src/common/helper"
-	"github.com/dwprz/prasorganic-auth-service/src/common/logger"
-	grpcapp "github.com/dwprz/prasorganic-auth-service/src/core/grpc/grpc"
-	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
-	serviceinterface "github.com/dwprz/prasorganic-auth-service/src/interface/service"
+	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/client"
+	"github.com/dwprz/prasorganic-auth-service/src/interface/service"
 	"github.com/dwprz/prasorganic-auth-service/src/mock/cache"
-	"github.com/dwprz/prasorganic-auth-service/src/mock/client"
+	"github.com/dwprz/prasorganic-auth-service/src/mock/delivery"
 	svcmock "github.com/dwprz/prasorganic-auth-service/src/mock/service"
 	"github.com/dwprz/prasorganic-auth-service/src/model/dto"
-	"github.com/dwprz/prasorganic-auth-service/src/service"
+	serviceimpl "github.com/dwprz/prasorganic-auth-service/src/service"
 	"github.com/dwprz/prasorganic-proto/protogen/user"
-	"github.com/go-playground/validator/v10"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -28,30 +24,24 @@ import (
 
 type VerifyRegisterTestSuite struct {
 	suite.Suite
-	authService    serviceinterface.Auth
-	otpService     *svcmock.OtpMock
-	userGrpcClient *client.UserGrpcMock
-	authCache      *cache.AuthMock
-	logger         *logrus.Logger
+	userGrpcDelivery *delivery.UserGrpcMock
+	authService      service.Auth
+	otpService       *svcmock.OtpMock
+	authCache        *cache.AuthMock
 }
 
 func (v *VerifyRegisterTestSuite) SetupSuite() {
-	v.logger = logger.New()
-	validator := validator.New()
-	conf := config.New("DEVELOPMENT", v.logger)
-	helper := helper.New(conf, v.logger)
-
 	// mock
-	v.userGrpcClient = client.NewUserMock()
+	v.userGrpcDelivery = delivery.NewUserGrpcMock()
 	userGrpcConn := new(grpc.ClientConn)
 
-	grpcClient := grpcapp.NewClient(v.userGrpcClient, userGrpcConn, v.logger)
+	grpcClient := client.NewGrpc(v.userGrpcDelivery, userGrpcConn)
 
 	// mock
 	v.authCache = cache.NewAuthMock()
 	v.otpService = svcmock.NewOtpMock()
 
-	v.authService = service.NewAuth(grpcClient, v.otpService, validator, v.authCache, v.logger, conf, helper)
+	v.authService = serviceimpl.NewAuth(grpcClient, v.otpService, v.authCache)
 }
 
 func (v *VerifyRegisterTestSuite) Test_Success() {
@@ -95,7 +85,7 @@ func (v *VerifyRegisterTestSuite) Test_Otp() {
 
 func (v *VerifyRegisterTestSuite) MockUserGrpcClient_Create(data *dto.RegisterReq, returnArg error) {
 
-	v.userGrpcClient.Mock.On("Create", mock.Anything, mock.MatchedBy(func(req *user.RegisterRequest) bool {
+	v.userGrpcDelivery.Mock.On("Create", mock.Anything, mock.MatchedBy(func(req *user.RegisterRequest) bool {
 		return req.Email == data.Email && req.FullName == data.FullName && data.Password == req.Password
 	})).Return(returnArg)
 }

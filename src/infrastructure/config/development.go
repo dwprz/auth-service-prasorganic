@@ -1,19 +1,26 @@
 package config
 
 import (
+	"os"
+
+	"github.com/dwprz/prasorganic-auth-service/src/common/log"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
-func setUpForDevelopment(logger *logrus.Logger) *Config {
-	viper := viper.New()
+func setUpForDevelopment() *Config {
+	err := os.Chdir(os.Getenv("PRASORGANIC_AUTH_SERVICE_WORKSPACE"))
+	if err != nil {
+		log.Logger.WithFields(logrus.Fields{"location": "config.setUpForDevelopment", "section": "os.Chdir"}).Fatal(err)
+	}
 
+	viper := viper.New()
 	viper.SetConfigFile(".env")
 	viper.AddConfigPath(".")
 
-	err := viper.ReadInConfig()
+	err = viper.ReadInConfig()
 	if err != nil {
-		logger.WithFields(logrus.Fields{"location": "config.setUpForDevelopment", "section": "viper.ReadInConfig"}).Fatal(err)
+		log.Logger.WithFields(logrus.Fields{"location": "config.setUpForDevelopment", "section": "viper.ReadInConfig"}).Fatal(err)
 	}
 
 	currentAppConf := new(currentApp)
@@ -44,8 +51,8 @@ func setUpForDevelopment(logger *logrus.Logger) *Config {
 	googleOauthConf.RedirectURL = viper.GetString("GOOGLE_OAUTH_REDIRECT_URL")
 
 	jwtConf := new(jwt)
-	jwtConf.PrivateKey = loadRSAPrivateKey(viper.GetString("JWT_PRIVATE_KEY"), logger)
-	jwtConf.PublicKey = loadRSAPublicKey(viper.GetString("JWT_PUBLIC_KEY"), logger)
+	jwtConf.PrivateKey = loadRSAPrivateKey(viper.GetString("JWT_PRIVATE_KEY"))
+	jwtConf.PublicKey = loadRSAPublicKey(viper.GetString("JWT_PUBLIC_KEY"))
 
 	return &Config{
 		CurrentApp:           currentAppConf,
