@@ -12,16 +12,23 @@ import (
 
 type EmailBrokerImpl struct {
 	connection *amqp.Connection
+	channel    *amqp.Channel
 }
 
 func NewEmailBroker() delivery.EmailBroker {
 	conn, err := amqp.Dial(config.Conf.RabbitMQEmailService.DSN)
 	if err != nil {
-		log.Logger.WithFields(logrus.Fields{"location": "delivery.NewRabbitMQClient", "section": "amqp.Dial"}).Fatal(err)
+		log.Logger.WithFields(logrus.Fields{"location": "delivery.NewEmailBroker", "section": "amqp.Dial"}).Fatal(err)
+	}
+
+	chann, err := conn.Channel()
+	if err != nil {
+		log.Logger.WithFields(logrus.Fields{"location": "delivery.NewEmailBroker", "section": "conn.Channel"}).Error(err)
 	}
 
 	return &EmailBrokerImpl{
 		connection: conn,
+		channel:    chann,
 	}
 }
 
@@ -36,19 +43,16 @@ func (r *EmailBrokerImpl) Publish(exchange string, key string, message any) {
 		Body:        []byte(jsonData),
 	}
 
-	channel, err := r.connection.Channel()
-	if err != nil {
-		log.Logger.WithFields(logrus.Fields{"location": "delivery.EmailBrokerImpl/Publish", "section": "connection.Channel"}).Error(err)
-	}
-
-	defer channel.Close()
-
-	if err := channel.Publish(exchange, key, false, false, msg); err != nil {
+	if err := r.channel.Publish(exchange, key, false, false, msg); err != nil {
 		log.Logger.WithFields(logrus.Fields{"location": "delivery.EmailBrokerImpl/Publish", "section": "channel.PublishWithContext"}).Error(err)
 	}
 }
 
 func (r *EmailBrokerImpl) Close() {
+	if err := r.channel.Close(); err != nil {
+		log.Logger.WithFields(logrus.Fields{"location": "delivery.EmailBrokerImpl/Close", "section": "channel.Close"}).Error(err)
+	}
+
 	if err := r.connection.Close(); err != nil {
 		log.Logger.WithFields(logrus.Fields{"location": "delivery.EmailBrokerImpl/Close", "section": "connection.Close"}).Error(err)
 	}
