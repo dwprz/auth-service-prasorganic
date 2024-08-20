@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func Create(app *fiber.App, h *handler.Auth, m *middleware.Middleware) {
+func Create(app *fiber.App, h *handler.AuthRESTful, m *middleware.Middleware) {
 	// all
 	app.Add("POST", "/api/auth/register", h.Register)
 	app.Add("POST", "/api/auth/register/verify", h.VerifyRegister)

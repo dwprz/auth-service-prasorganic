@@ -65,7 +65,7 @@ func (v *VerifyRegisterTestSuite) Test_Success() {
 	assert.NoError(v.T(), err)
 }
 
-func (v *VerifyRegisterTestSuite) Test_Otp() {
+func (v *VerifyRegisterTestSuite) Test_InvalidOtp() {
 	verifyRegisterReq := &dto.VerifyOtpReq{
 		Email: "johndoe123@gmail.com",
 		Otp:   "invalid otp",

@@ -124,7 +124,7 @@ func (a *AuthImpl) Login(ctx context.Context, data *dto.LoginReq) (*dto.LoginRes
 	}
 
 	if res.Data == nil {
-		return nil, &errors.Response{HttpCode: 404, Message: "email is invalid"}
+		return nil, &errors.Response{HttpCode: 404, Message: "there are no users that match this email"}
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(res.Data.Password), []byte(data.Password)); err != nil {
@@ -170,6 +170,10 @@ func (a *AuthImpl) RefreshToken(ctx context.Context, refreshToken string) (*enti
 
 	if err != nil {
 		return nil, err
+	}
+
+	if res.Data == nil {
+		return nil, &errors.Response{HttpCode: 404, Message: "there are no users that match this refresh token"}
 	}
 
 	accessToken, err := helper.GenerateAccessToken(res.Data.UserId, res.Data.Email, res.Data.Role)

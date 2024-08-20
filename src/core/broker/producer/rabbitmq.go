@@ -1,4 +1,4 @@
-package client
+package producer
 
 import "github.com/dwprz/prasorganic-auth-service/src/interface/delivery"
 

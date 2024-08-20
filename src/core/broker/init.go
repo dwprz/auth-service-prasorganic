@@ -1,13 +1,13 @@
 package broker
 
 import (
-	"github.com/dwprz/prasorganic-auth-service/src/core/broker/client"
 	"github.com/dwprz/prasorganic-auth-service/src/core/broker/delivery"
+	"github.com/dwprz/prasorganic-auth-service/src/core/broker/producer"
 )
 
-func InitClient() *client.RabbitMQ {
+func InitClient() *producer.RabbitMQ {
 	emailBrokerDelivery := delivery.NewEmailBroker()
-	rabbitMQClient := client.NewRabbitMQ(emailBrokerDelivery)
+	rabbitMQClient := producer.NewRabbitMQ(emailBrokerDelivery)
 
 	return rabbitMQClient
 }

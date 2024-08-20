@@ -29,7 +29,7 @@ func (r *RegisterTestSuite) SetupSuite() {
 	// mock
 	r.authService = service.NewAuthMock()
 
-	authHandler := handler.NewAuth(r.authService)
+	authHandler := handler.NewAuthRESTful(r.authService)
 
 	middleware := middleware.New()
 	r.restfulServer = server.NewRestful(authHandler, middleware)

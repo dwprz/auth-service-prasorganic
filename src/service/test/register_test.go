@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 )
 
@@ -53,15 +52,7 @@ func (r *RegisterTestSuite) Test_Success() {
 	}
 
 	r.userGrpcDelivery.Mock.On("FindByEmail", mock.Anything, req.Email).Return(&user.FindUserRes{Data: nil}, nil)
-
 	r.otpService.Mock.On("Send", mock.Anything, req.Email).Return(nil)
-
-	// memberikan argumen password secara langsung karena password di hash method authService.Register
-	r.authCache.Mock.On("CacheRegisterReq", mock.Anything, mock.MatchedBy(func(data *dto.RegisterReq) bool {
-
-		err := bcrypt.CompareHashAndPassword([]byte(data.Password), []byte("rahasia"))
-		return data.Email == req.Email && data.FullName == req.FullName && err == nil
-	})).Return(nil)
 
 	email, err := r.authService.Register(context.Background(), req)
 

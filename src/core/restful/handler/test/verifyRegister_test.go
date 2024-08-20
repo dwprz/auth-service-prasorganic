@@ -32,7 +32,7 @@ func (v *VerifyRegisterTestSuite) SetupSuite() {
 	// mock
 	v.authService = service.NewAuthMock()
 
-	authHandler := handler.NewAuth(v.authService)
+	authHandler := handler.NewAuthRESTful(v.authService)
 
 	middleware := middleware.New()
 	v.restfulServer = server.NewRestful(authHandler, middleware)

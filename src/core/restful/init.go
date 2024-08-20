@@ -8,7 +8,7 @@ import (
 )
 
 func InitServer(as service.Auth) *server.Restful {
-	authHandler := handler.NewAuth(as)
+	authHandler := handler.NewAuthRESTful(as)
 	middleware := middleware.New()
 
 	restfulServer := server.NewRestful(authHandler, middleware)

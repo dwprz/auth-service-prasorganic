@@ -14,17 +14,17 @@ import (
 	gonanoid "github.com/matoous/go-nanoid/v2"
 )
 
-type Auth struct {
+type AuthRESTful struct {
 	authService service.Auth
 }
 
-func NewAuth(as service.Auth) *Auth {
-	return &Auth{
+func NewAuthRESTful(as service.Auth) *AuthRESTful {
+	return &AuthRESTful{
 		authService: as,
 	}
 }
 
-func (a *Auth) Register(c *fiber.Ctx) error {
+func (a *AuthRESTful) Register(c *fiber.Ctx) error {
 	request := new(dto.RegisterReq)
 
 	if err := c.BodyParser(request); err != nil {
@@ -47,7 +47,7 @@ func (a *Auth) Register(c *fiber.Ctx) error {
 	return c.Status(200).JSON(fiber.Map{"data": "register request successfully"})
 }
 
-func (a *Auth) VerifyRegister(c *fiber.Ctx) error {
+func (a *AuthRESTful) VerifyRegister(c *fiber.Ctx) error {
 	request := new(dto.VerifyOtpReq)
 
 	if err := c.BodyParser(request); err != nil {
@@ -71,7 +71,7 @@ func (a *Auth) VerifyRegister(c *fiber.Ctx) error {
 	return c.Status(200).JSON(fiber.Map{"data": "verify register successfully"})
 }
 
-func (a *Auth) LoginWithGoogle(c *fiber.Ctx) error {
+func (a *AuthRESTful) LoginWithGoogle(c *fiber.Ctx) error {
 	oauthState, err := helper.GenerateOauthState()
 	if err != nil {
 		return err
@@ -90,7 +90,7 @@ func (a *Auth) LoginWithGoogle(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusSeeOther).Redirect(url)
 }
 
-func (a *Auth) LoginWithGoogleCallback(c *fiber.Ctx) error {
+func (a *AuthRESTful) LoginWithGoogleCallback(c *fiber.Ctx) error {
 	req := c.Body()
 
 	user := new(dto.LoginWithGoogleReq)
@@ -144,7 +144,7 @@ func (a *Auth) LoginWithGoogleCallback(c *fiber.Ctx) error {
 	return c.Status(200).JSON(fiber.Map{"data": result})
 }
 
-func (a *Auth) Login(c *fiber.Ctx) error {
+func (a *AuthRESTful) Login(c *fiber.Ctx) error {
 	req := new(dto.LoginReq)
 	if err := c.BodyParser(req); err != nil {
 		return err
@@ -174,7 +174,7 @@ func (a *Auth) Login(c *fiber.Ctx) error {
 	return c.Status(200).JSON(fiber.Map{"data": res.Data})
 }
 
-func (a *Auth) RefreshToken(c *fiber.Ctx) error {
+func (a *AuthRESTful) RefreshToken(c *fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token")
 
 	if _, err := helper.VerifyJwt(refreshToken); err != nil {
@@ -197,7 +197,7 @@ func (a *Auth) RefreshToken(c *fiber.Ctx) error {
 	return c.Status(201).JSON(fiber.Map{"data": "refresh token successfully"})
 }
 
-func (a *Auth) Logout(c *fiber.Ctx) error {
+func (a *AuthRESTful) Logout(c *fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token")
 
 	a.authService.SetNullRefreshToken(c.Context(), refreshToken)
