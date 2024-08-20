@@ -69,7 +69,7 @@ func (a *AuthImpl) VerifyRegister(ctx context.Context, data *dto.VerifyOtpReq) e
 		return &errors.Response{HttpCode: 404, Message: "register request not found"}
 	}
 
-	req := new(pb.RegisterRequest)
+	req := new(pb.RegisterReq)
 	if err := copier.Copy(req, registerReq); err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (a *AuthImpl) LoginWithGoogle(ctx context.Context, data *dto.LoginWithGoogl
 		return nil, err
 	}
 
-	req := new(pb.LoginWithGoogleRequest)
+	req := new(pb.LoginWithGoogleReq)
 	if err := copier.Copy(req, data); err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (a *AuthImpl) Login(ctx context.Context, data *dto.LoginReq) (*dto.LoginRes
 		return nil, err
 	}
 
-	go a.grpcClient.User.AddRefreshToken(ctx, &pb.AddRefreshToken{
+	go a.grpcClient.User.AddRefreshToken(ctx, &pb.AddRefreshTokenReq{
 		Email: data.Email,
 		Token: refreshToken,
 	})

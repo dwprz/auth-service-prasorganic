@@ -85,7 +85,7 @@ func (v *VerifyRegisterTestSuite) Test_Otp() {
 
 func (v *VerifyRegisterTestSuite) MockUserGrpcClient_Create(data *dto.RegisterReq, returnArg error) {
 
-	v.userGrpcDelivery.Mock.On("Create", mock.Anything, mock.MatchedBy(func(req *user.RegisterRequest) bool {
+	v.userGrpcDelivery.Mock.On("Create", mock.Anything, mock.MatchedBy(func(req *user.RegisterReq) bool {
 		return req.Email == data.Email && req.FullName == data.FullName && data.Password == req.Password
 	})).Return(returnArg)
 }

@@ -6,10 +6,10 @@ import (
 )
 
 type UserGrpc interface {
-	Create(ctx context.Context, data *pb.RegisterRequest) error
-	FindByEmail(ctx context.Context, email string) (*pb.FindUserResponse, error)
-	FindByRefreshToken(ctx context.Context, data *pb.RefreshToken) (*pb.FindUserResponse, error)
-	Upsert(ctx context.Context, data *pb.LoginWithGoogleRequest) (*pb.User, error)
-	AddRefreshToken(ctx context.Context, data *pb.AddRefreshToken) error
+	Create(ctx context.Context, data *pb.RegisterReq) error
+	FindByEmail(ctx context.Context, email string) (*pb.FindUserRes, error)
+	FindByRefreshToken(ctx context.Context, data *pb.RefreshToken) (*pb.FindUserRes, error)
+	Upsert(ctx context.Context, data *pb.LoginWithGoogleReq) (*pb.User, error)
+	AddRefreshToken(ctx context.Context, data *pb.AddRefreshTokenReq) error
 	SetNullRefreshToken(ctx context.Context, refreshToken string) error 
 }

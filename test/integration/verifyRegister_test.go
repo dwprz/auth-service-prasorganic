@@ -93,7 +93,7 @@ func (v *VerifyRegisterTestSuite) Test_Success() {
 
 func (v *VerifyRegisterTestSuite) MockUserGrpcDelivery_FindByEmail(email string) {
 	v.userGrpcDelivery.Mock.On("FindByEmail", mock.Anything, email).Return(
-		&user.FindUserResponse{
+		&user.FindUserRes{
 			Data: nil,
 		}, nil,
 	)
@@ -101,7 +101,7 @@ func (v *VerifyRegisterTestSuite) MockUserGrpcDelivery_FindByEmail(email string)
 
 func (v *VerifyRegisterTestSuite) MockUserGrpcDelivery_Create(data *dto.RegisterReq) {
 
-	v.userGrpcDelivery.Mock.On("Create", mock.Anything, mock.MatchedBy(func(req *user.RegisterRequest) bool {
+	v.userGrpcDelivery.Mock.On("Create", mock.Anything, mock.MatchedBy(func(req *user.RegisterReq) bool {
 		err := bcrypt.CompareHashAndPassword([]byte(req.Password), []byte("rahasia"))
 		return req.Email == data.Email && req.FullName == data.FullName && err == nil
 	})).Return(nil)

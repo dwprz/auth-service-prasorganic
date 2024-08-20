@@ -118,7 +118,7 @@ func (r *RegisterTestSuite) MockHelper_GenerateOtp(otp string) {
 
 func (r *RegisterTestSuite) MockUserGrpcDelivery_FindByEmail(email string, data *user.User) {
 	r.userGrpcDelivery.Mock.On("FindByEmail", mock.Anything, email).Return(
-		&user.FindUserResponse{
+		&user.FindUserRes{
 			Data: data,
 		}, nil)
 }

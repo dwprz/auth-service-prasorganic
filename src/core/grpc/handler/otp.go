@@ -21,7 +21,7 @@ func NewOtpGrpc(os service.Otp) pb.OtpServiceServer {
 	}
 }
 
-func (a *OtpGrpcImpl) Send(ctx context.Context, data *pb.SendRequest) (*emptypb.Empty, error) {
+func (a *OtpGrpcImpl) Send(ctx context.Context, data *pb.SendReq) (*emptypb.Empty, error) {
 	if err := a.otpService.Send(ctx, data.Email); err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func (a *OtpGrpcImpl) Send(ctx context.Context, data *pb.SendRequest) (*emptypb.
 	return nil, nil
 }
 
-func (a *OtpGrpcImpl) Verify(ctx context.Context, data *pb.VerifyRequest) (*pb.VerifyResponse, error) {
+func (a *OtpGrpcImpl) Verify(ctx context.Context, data *pb.VerifyReq) (*pb.VerifyRes, error) {
 	req := new(dto.VerifyOtpReq)
 	if err := copier.Copy(req, data); err != nil {
 		return nil, err
@@ -39,5 +39,5 @@ func (a *OtpGrpcImpl) Verify(ctx context.Context, data *pb.VerifyRequest) (*pb.V
 		return nil, err
 	}
 
-	return &pb.VerifyResponse{Valid: true}, nil
+	return &pb.VerifyRes{Valid: true}, nil
 }

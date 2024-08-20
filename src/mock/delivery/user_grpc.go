@@ -16,33 +16,33 @@ func NewUserGrpcMock() *UserGrpcMock {
 	}
 }
 
-func (u *UserGrpcMock) FindByEmail(ctx context.Context, email string) (*pb.FindUserResponse, error) {
+func (u *UserGrpcMock) FindByEmail(ctx context.Context, email string) (*pb.FindUserRes, error) {
 	arguments := u.Mock.Called(ctx, email)
 
 	if arguments.Get(0) == nil {
 		return nil, arguments.Error(1)
 	}
 
-	return arguments.Get(0).(*pb.FindUserResponse), arguments.Error(1)
+	return arguments.Get(0).(*pb.FindUserRes), arguments.Error(1)
 }
 
-func (u *UserGrpcMock) FindByRefreshToken(ctx context.Context, data *pb.RefreshToken) (*pb.FindUserResponse, error) {
+func (u *UserGrpcMock) FindByRefreshToken(ctx context.Context, data *pb.RefreshToken) (*pb.FindUserRes, error) {
 	arguments := u.Mock.Called(ctx, data)
 
 	if arguments.Get(0) == nil {
 		return nil, arguments.Error(1)
 	}
 
-	return arguments.Get(0).(*pb.FindUserResponse), arguments.Error(1)
+	return arguments.Get(0).(*pb.FindUserRes), arguments.Error(1)
 }
 
-func (u *UserGrpcMock) Create(ctx context.Context, data *pb.RegisterRequest) error {
+func (u *UserGrpcMock) Create(ctx context.Context, data *pb.RegisterReq) error {
 	arguments := u.Mock.Called(ctx, data)
 
 	return arguments.Error(0)
 }
 
-func (u *UserGrpcMock) Upsert(ctx context.Context, data *pb.LoginWithGoogleRequest) (*pb.User, error) {
+func (u *UserGrpcMock) Upsert(ctx context.Context, data *pb.LoginWithGoogleReq) (*pb.User, error) {
 	arguments := u.Mock.Called(ctx, data)
 
 	if arguments.Get(0) == nil {
@@ -52,7 +52,7 @@ func (u *UserGrpcMock) Upsert(ctx context.Context, data *pb.LoginWithGoogleReque
 	return arguments.Get(0).(*pb.User), arguments.Error(1)
 }
 
-func (u *UserGrpcMock) AddRefreshToken(ctx context.Context, data *pb.AddRefreshToken) error {
+func (u *UserGrpcMock) AddRefreshToken(ctx context.Context, data *pb.AddRefreshTokenReq) error {
 	arguments := u.Mock.Called(ctx, data)
 
 	return arguments.Error(0)
