@@ -8,10 +8,15 @@ import (
 	"github.com/dwprz/prasorganic-auth-service/src/common/errors/restful"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"google.golang.org/grpc/status"
 )
 
 func (m *Middleware) Error(c *fiber.Ctx, err error) error {
 	restful.LogError(c, err)
+
+	if st, ok := status.FromError(err); ok {
+		return restful.HandleGrpcError(c, st)
+	}
 
 	if validationError, ok := err.(validator.ValidationErrors); ok {
 		return restful.HandleValidationError(c, validationError)

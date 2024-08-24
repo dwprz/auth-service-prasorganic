@@ -1,2 +1,3 @@
 .env*
 dummy*.*
+cmd/main
