@@ -15,6 +15,11 @@ require (
 )
 
 require (
+	github.com/magefile/mage v1.9.0 // indirect
+	go.elastic.co/ecslogrus v1.0.0 // indirect
+)
+
+require (
 	cloud.google.com/go/compute/metadata v0.5.0 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/cenkalti/backoff/v3 v3.0.0 // indirect
