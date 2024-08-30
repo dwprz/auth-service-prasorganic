@@ -6,21 +6,20 @@ import (
 
 	"github.com/dwprz/prasorganic-auth-service/src/common/log"
 	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/interceptor"
+	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/cbreaker"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
 	"github.com/dwprz/prasorganic-auth-service/src/interface/delivery"
 	pb "github.com/dwprz/prasorganic-proto/protogen/user"
 	"github.com/sirupsen/logrus"
-	"github.com/sony/gobreaker/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 type UserGrpcImpl struct {
 	client   pb.UserServiceClient
-	cbreaker *gobreaker.CircuitBreaker[any]
 }
 
-func NewUserGrpc(CBreakerUserGrpc *gobreaker.CircuitBreaker[any], unaryRequest *interceptor.UnaryRequest) (delivery.UserGrpc, *grpc.ClientConn) {
+func NewUserGrpc(unaryRequest *interceptor.UnaryRequest) (delivery.UserGrpc, *grpc.ClientConn) {
 	var opts []grpc.DialOption
 	opts = append(
 		opts,
@@ -37,12 +36,11 @@ func NewUserGrpc(CBreakerUserGrpc *gobreaker.CircuitBreaker[any], unaryRequest *
 
 	return &UserGrpcImpl{
 		client:   client,
-		cbreaker: CBreakerUserGrpc,
 	}, conn
 }
 
 func (u *UserGrpcImpl) Create(ctx context.Context, data *pb.RegisterReq) error {
-	_, err := u.cbreaker.Execute(func() (any, error) {
+	_, err := cbreaker.UserGrpc.Execute(func() (any, error) {
 		_, err := u.client.Create(ctx, data)
 		return nil, err
 	})
@@ -51,7 +49,7 @@ func (u *UserGrpcImpl) Create(ctx context.Context, data *pb.RegisterReq) error {
 }
 
 func (u *UserGrpcImpl) FindByEmail(ctx context.Context, email string) (*pb.FindUserRes, error) {
-	res, err := u.cbreaker.Execute(func() (any, error) {
+	res, err := cbreaker.UserGrpc.Execute(func() (any, error) {
 		res, err := u.client.FindByEmail(ctx, &pb.Email{Email: email})
 		return res, err
 	})
@@ -69,7 +67,7 @@ func (u *UserGrpcImpl) FindByEmail(ctx context.Context, email string) (*pb.FindU
 }
 
 func (u *UserGrpcImpl) FindByRefreshToken(ctx context.Context, data *pb.RefreshToken) (*pb.FindUserRes, error) {
-	res, err := u.cbreaker.Execute(func() (any, error) {
+	res, err := cbreaker.UserGrpc.Execute(func() (any, error) {
 		res, err := u.client.FindByRefreshToken(ctx, &pb.RefreshToken{
 			Token: data.Token,
 		})
@@ -85,7 +83,7 @@ func (u *UserGrpcImpl) FindByRefreshToken(ctx context.Context, data *pb.RefreshT
 }
 
 func (u *UserGrpcImpl) Upsert(ctx context.Context, data *pb.LoginWithGoogleReq) (*pb.User, error) {
-	res, err := u.cbreaker.Execute(func() (any, error) {
+	res, err := cbreaker.UserGrpc.Execute(func() (any, error) {
 		res, err := u.client.Upsert(ctx, data)
 		return res, err
 	})
@@ -103,7 +101,7 @@ func (u *UserGrpcImpl) Upsert(ctx context.Context, data *pb.LoginWithGoogleReq) 
 }
 
 func (u *UserGrpcImpl) AddRefreshToken(ctx context.Context, data *pb.AddRefreshTokenReq) error {
-	_, err := u.cbreaker.Execute(func() (any, error) {
+	_, err := cbreaker.UserGrpc.Execute(func() (any, error) {
 		_, err := u.client.AddRefreshToken(ctx, data)
 		return nil, err
 	})
@@ -112,7 +110,7 @@ func (u *UserGrpcImpl) AddRefreshToken(ctx context.Context, data *pb.AddRefreshT
 }
 
 func (u *UserGrpcImpl) SetNullRefreshToken(ctx context.Context, refreshToken string) error {
-	_, err := u.cbreaker.Execute(func() (any, error) {
+	_, err := cbreaker.UserGrpc.Execute(func() (any, error) {
 		_, err := u.client.SetNullRefreshToken(ctx, &pb.RefreshToken{
 			Token: refreshToken,
 		})

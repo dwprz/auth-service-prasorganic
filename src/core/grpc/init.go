@@ -6,7 +6,6 @@ import (
 	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/handler"
 	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/interceptor"
 	"github.com/dwprz/prasorganic-auth-service/src/core/grpc/server"
-	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/cbreaker"
 	"github.com/dwprz/prasorganic-auth-service/src/infrastructure/config"
 	"github.com/dwprz/prasorganic-auth-service/src/interface/service"
 )
@@ -20,10 +19,8 @@ func InitServer(os service.Otp) *server.Grpc {
 }
 
 func InitClient() *client.Grpc {
-	cbreakerUser := cbreaker.UserGrpc
 	unaryRequestInterceptor := interceptor.NewUnaryRequest()
-
-	userDelivery, userConn := delivery.NewUserGrpc(cbreakerUser, unaryRequestInterceptor)
+	userDelivery, userConn := delivery.NewUserGrpc(unaryRequestInterceptor)
 
 	grpcClient := client.NewGrpc(userDelivery, userConn)
 	return grpcClient
