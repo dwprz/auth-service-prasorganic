@@ -36,6 +36,7 @@ func (e *EmailBrokerImpl) Publish(exchange string, key string, message any) {
 	jsonData, err := json.Marshal(message)
 	if err != nil {
 		log.Logger.WithFields(logrus.Fields{"location": "delivery.EmailBrokerImpl/Publish", "section": "json.Marshal"}).Error(err)
+		return
 	}
 
 	msg := amqp.Publishing{
