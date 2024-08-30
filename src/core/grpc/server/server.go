@@ -27,29 +27,29 @@ func NewGrpc(port string, otpHandler pb.OtpServiceServer, uri *interceptor.Unary
 	}
 }
 
-func (s *Grpc) Run() {
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", s.port))
+func (g *Grpc) Run() {
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", g.port))
 	if err != nil {
 		log.Logger.WithFields(logrus.Fields{"location": "server.Grpc/Run", "section": "net.Listen"}).Fatal(err)
 	}
 
-	log.Logger.Infof("grpc run in port: %s", s.port)
+	log.Logger.Infof("grpc run in port: %s", g.port)
 
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
-			s.unaryResponseInterceptor.Recovery,
-			s.unaryResponseInterceptor.Error,
+			g.unaryResponseInterceptor.Recovery,
+			g.unaryResponseInterceptor.Error,
 		))
 
-	s.server = grpcServer
+	g.server = grpcServer
 
-	pb.RegisterOtpServiceServer(grpcServer, s.otpHandler)
+	pb.RegisterOtpServiceServer(grpcServer, g.otpHandler)
 
 	if err := grpcServer.Serve(listener); err != nil {
 		log.Logger.WithFields(logrus.Fields{"location": "server.Grpc/Run", "section": "grpcServer.Serve"}).Fatal(err)
 	}
 }
 
-func (s *Grpc) Stop() {
-	s.server.Stop()
+func (g *Grpc) Stop() {
+	g.server.Stop()
 }

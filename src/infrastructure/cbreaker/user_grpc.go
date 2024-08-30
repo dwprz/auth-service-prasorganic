@@ -13,7 +13,7 @@ var UserGrpc *gobreaker.CircuitBreaker[any]
 
 func init() {
 	settings := gobreaker.Settings{
-		Name:        "user-grpc-client-circuit-breaker",
+		Name:        "user-grpc-client",
 		MaxRequests: 3,
 		Interval:    1 * time.Minute,
 		Timeout:     15 * time.Second,
@@ -45,12 +45,10 @@ func init() {
 				}
 			}
 
-			log.Logger.Info("ini status code: ", st.Code())
-
 			return false
 		},
 		OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
-			log.Logger.Infof("circuit breake %v from status %v to %v", name, from, to)
+			log.Logger.Infof("circuit breaker %v from status %v to %v", name, from, to)
 		},
 	}
 

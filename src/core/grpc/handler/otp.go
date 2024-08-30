@@ -21,21 +21,21 @@ func NewOtpGrpc(os service.Otp) pb.OtpServiceServer {
 	}
 }
 
-func (a *OtpGrpcImpl) Send(ctx context.Context, data *pb.SendReq) (*emptypb.Empty, error) {
-	if err := a.otpService.Send(ctx, data.Email); err != nil {
+func (o *OtpGrpcImpl) Send(ctx context.Context, data *pb.SendReq) (*emptypb.Empty, error) {
+	if err := o.otpService.Send(ctx, data.Email); err != nil {
 		return nil, err
 	}
 
 	return nil, nil
 }
 
-func (a *OtpGrpcImpl) Verify(ctx context.Context, data *pb.VerifyReq) (*pb.VerifyRes, error) {
+func (o *OtpGrpcImpl) Verify(ctx context.Context, data *pb.VerifyReq) (*pb.VerifyRes, error) {
 	req := new(dto.VerifyOtpReq)
 	if err := copier.Copy(req, data); err != nil {
 		return nil, err
 	}
 
-	if err := a.otpService.Verify(ctx, req); err != nil {
+	if err := o.otpService.Verify(ctx, req); err != nil {
 		return nil, err
 	}
 

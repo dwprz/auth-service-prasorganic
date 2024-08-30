@@ -32,7 +32,7 @@ func NewEmailBroker() delivery.EmailBroker {
 	}
 }
 
-func (r *EmailBrokerImpl) Publish(exchange string, key string, message any) {
+func (e *EmailBrokerImpl) Publish(exchange string, key string, message any) {
 	jsonData, err := json.Marshal(message)
 	if err != nil {
 		log.Logger.WithFields(logrus.Fields{"location": "delivery.EmailBrokerImpl/Publish", "section": "json.Marshal"}).Error(err)
@@ -43,17 +43,17 @@ func (r *EmailBrokerImpl) Publish(exchange string, key string, message any) {
 		Body:        []byte(jsonData),
 	}
 
-	if err := r.channel.Publish(exchange, key, false, false, msg); err != nil {
+	if err := e.channel.Publish(exchange, key, false, false, msg); err != nil {
 		log.Logger.WithFields(logrus.Fields{"location": "delivery.EmailBrokerImpl/Publish", "section": "channel.PublishWithContext"}).Error(err)
 	}
 }
 
-func (r *EmailBrokerImpl) Close() {
-	if err := r.channel.Close(); err != nil {
+func (e *EmailBrokerImpl) Close() {
+	if err := e.channel.Close(); err != nil {
 		log.Logger.WithFields(logrus.Fields{"location": "delivery.EmailBrokerImpl/Close", "section": "channel.Close"}).Error(err)
 	}
 
-	if err := r.connection.Close(); err != nil {
+	if err := e.connection.Close(); err != nil {
 		log.Logger.WithFields(logrus.Fields{"location": "delivery.EmailBrokerImpl/Close", "section": "connection.Close"}).Error(err)
 	}
 }
