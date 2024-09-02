@@ -10,14 +10,12 @@ require (
 	github.com/redis/go-redis/v9 v9.5.3
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
+	go.elastic.co/ecslogrus v1.0.0
 	golang.org/x/crypto v0.25.0
 	google.golang.org/grpc v1.65.0
 )
 
-require (
-	github.com/magefile/mage v1.9.0 // indirect
-	go.elastic.co/ecslogrus v1.0.0 // indirect
-)
+require github.com/magefile/mage v1.9.0 // indirect
 
 require (
 	cloud.google.com/go/compute/metadata v0.5.0 // indirect

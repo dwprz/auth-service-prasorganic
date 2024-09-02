@@ -29,6 +29,8 @@ func main() {
 	handleCloseApp(closeCH)
 
 	redisDB := database.NewRedisCluster()
+	defer redisDB.Close()
+
 	authCache := cache.NewAuth(redisDB)
 	otpCache := cache.NewOtp(redisDB)
 	util := util.New()
